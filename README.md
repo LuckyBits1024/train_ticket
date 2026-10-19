@@ -65,6 +65,8 @@ JSON 则保留完整结构：`range / user / summary / totals / records[]`，每
 
 使用已确认的 Rail Memory v2 底图，本地绘制字段并输出 PNG。蓝票、粉红票均保留底部纪念说明，顶部没有“纪念”大字，二维码区域留空。生成过程不联网、不调用图像 API，也不依赖积分查询服务。
 
+> **模板升级进行中**：`feat/ticket-template-upgrade` 分支已拆出八款新版票面底图（蓝/蓝纸/蓝磁/蓝雕/蓝雕磁/红/红纸/红磁），并完成 TraceDot 4.1.8 的逆向分析与开发规范。设计、坐标、PDF 规则与分阶段任务见 [docs/README.md](docs/README.md)。当前 CLI 仍输出 `blue` / `pink` 两款，待 Python 渲染器完成 M5 后切换；Web 车票工坊为新增页面，不影响现有积分查询。
+
 ### 安装与运行
 
 此功能需要 Python 3.9+ 和 Pillow；上面的积分查询服务仍然只需要 Node.js。首次安装：

@@ -1,0 +1,403 @@
+{
+  "schemaVersion": 1,
+  "name": "Rail Memory v2",
+  "description": "八款 12306 纪念车票正面底图与版式元数据；坐标单位为 1x 画布像素。",
+  "source": {
+    "app": "TraceDot 4.1.8 arm64",
+    "artifact": "TraceDot-4.1.8-arm64.dmg",
+    "container": "Contents/Resources/app.asar",
+    "page": "app/index.html",
+    "extractedWith": "REA 6.5.0 static JavaScript/Electron analysis + base64 decode",
+    "asarSha256": "878ecdedf4b7dd98277ccddc420b2ed501ea93939bb3a4abab5e616555b75c12",
+    "pageSha256": "50e3dc11ba98066afa7560acb9db241610df1e2c27e786529dae85f25528bcb0"
+  },
+  "canvasFamilies": {
+    "blue": {
+      "width": 809,
+      "height": 509,
+      "defaultExportWidth": 1618
+    },
+    "red": {
+      "width": 800,
+      "height": 535,
+      "defaultExportWidth": 1600
+    }
+  },
+  "layout": {
+    "textBaseline": "middle",
+    "defaultTextColor": "#000000",
+    "fontTicket": "Times New Roman + CJK system fallback",
+    "fontTicketNumber": "Arial + CJK system fallback",
+    "ticketNo": {
+      "x": 45,
+      "y": 50,
+      "fontPx": 40,
+      "tracking": 4,
+      "color": "#ff0000",
+      "align": "left"
+    },
+    "checkin": {
+      "x": 760,
+      "y": 40,
+      "fontPx": 30,
+      "align": "right"
+    },
+    "startStation": {
+      "x": 60,
+      "y": 105,
+      "fontPx": 50,
+      "suffixPx": 32,
+      "pinyinY": 145,
+      "pinyinPx": 30
+    },
+    "endStation": {
+      "x": 550,
+      "y": 105,
+      "fontPx": 50,
+      "suffixPx": 32,
+      "pinyinY": 145,
+      "pinyinPx": 30
+    },
+    "trainNo": {
+      "x": 400,
+      "y": 105,
+      "fontPx": 46,
+      "align": "center",
+      "arrow": {
+        "fromX": 345,
+        "toX": 465,
+        "y": 135
+      }
+    },
+    "datetime": {
+      "x": 40,
+      "y": 190,
+      "digitPx": 38,
+      "unitPx": 24,
+      "gap": 5
+    },
+    "carriageSeat": {
+      "x": 522,
+      "y": 190,
+      "digitPx": 40,
+      "unitPx": 24,
+      "gap": 3
+    },
+    "price": {
+      "x": 40,
+      "y": 235,
+      "digitPx": 36,
+      "unitPx": 24
+    },
+    "flags": {
+      "centerX": 360,
+      "y": 235,
+      "fontPx": 24,
+      "circleR": 15
+    },
+    "seatClass": {
+      "x": 620,
+      "y": 235,
+      "fontPx": 30,
+      "align": "center"
+    },
+    "info1": {
+      "x": 40,
+      "y": 270,
+      "fontPx": 24
+    },
+    "info2": {
+      "x": 40,
+      "y": 305,
+      "fontPx": 24
+    },
+    "identity": {
+      "x": 40,
+      "y": 345,
+      "fontPx": 35
+    },
+    "name": {
+      "x": 400,
+      "y": 345,
+      "fontPx": 32,
+      "wrapAtQrLeft": true,
+      "gapToQr": 8
+    },
+    "dashBox": {
+      "x": 80,
+      "y": 365,
+      "w": 460,
+      "h": 70,
+      "lineWidth": 2,
+      "dash": [
+        10,
+        5
+      ]
+    },
+    "info3": {
+      "x": 300,
+      "line1Y": 385,
+      "line2Y": 415,
+      "fontPx": 24,
+      "align": "center"
+    },
+    "machineId": {
+      "x": 40,
+      "blueY": 475,
+      "redY": 485,
+      "fontPx": 27,
+      "note": "blueY/redY are after the family dy; add adjust.machineDy on top. blue=465+10; red=465+20."
+    },
+    "qr": {
+      "blue": {
+        "x": 600,
+        "y": 300,
+        "size": 128
+      },
+      "red": {
+        "x": 600,
+        "y": 360,
+        "size": 136
+      },
+      "bluePaperY": 307
+    }
+  },
+  "templates": [
+    {
+      "key": "blue",
+      "label": "蓝色票",
+      "labelEn": "Blue classic",
+      "family": "blue",
+      "canvas": {
+        "width": 809,
+        "height": 509
+      },
+      "background": {
+        "src": "front/blue.png",
+        "width": 811,
+        "height": 509,
+        "fit": "stretch",
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "dx": 0,
+        "dy": 0
+      },
+      "adjust": {},
+      "originalElementId": "blueImg",
+      "sha256": "479c65d0a2738a2183191c2ed8cc84c99b86f0e985fccc95e84859d929da2038",
+      "thumb": "thumbs/blue.webp",
+      "preview": "reference/blue.webp"
+    },
+    {
+      "key": "blue-paper",
+      "label": "蓝纸票",
+      "labelEn": "Blue paper",
+      "family": "blue",
+      "canvas": {
+        "width": 809,
+        "height": 509
+      },
+      "background": {
+        "src": "front/blue-paper.png",
+        "width": 809,
+        "height": 509,
+        "fit": "stretch",
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "dx": 0,
+        "dy": 0
+      },
+      "adjust": {
+        "ticketNoDx": -5,
+        "ticketNoDy": -4,
+        "machineDy": -10,
+        "checkinAlign": "ticketNoBottom",
+        "qrBottomDash": true
+      },
+      "originalElementId": "bluePaperImg",
+      "sha256": "3335a2ffbe5edf2aeabb59d699b1727e2d95ab83d5cc6fd9b28f54e77c35b019",
+      "thumb": "thumbs/blue-paper.webp",
+      "preview": "reference/blue-paper.webp"
+    },
+    {
+      "key": "blue-mag",
+      "label": "蓝磁票",
+      "labelEn": "Blue magnetic",
+      "family": "blue",
+      "canvas": {
+        "width": 809,
+        "height": 509
+      },
+      "background": {
+        "src": "front/blue-mag.png",
+        "width": 809,
+        "height": 509,
+        "fit": "stretch",
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "dx": 0,
+        "dy": 0
+      },
+      "adjust": {
+        "machineDy": 12
+      },
+      "originalElementId": "blueMagImg",
+      "sha256": "a528e6975f1bf4bef6bb41136cb5d132c80c7084ac26dcee387f1e3187b4dbb4",
+      "thumb": "thumbs/blue-mag.webp",
+      "preview": "reference/blue-mag.webp"
+    },
+    {
+      "key": "blue-etch",
+      "label": "蓝雕票",
+      "labelEn": "Blue etched",
+      "family": "blue",
+      "canvas": {
+        "width": 809,
+        "height": 509
+      },
+      "background": {
+        "src": "front/blue-etch.webp",
+        "width": 1255,
+        "height": 772,
+        "fit": "cover",
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "dx": 0,
+        "dy": 0
+      },
+      "adjust": {
+        "fit": "cover"
+      },
+      "originalElementId": "blueEtchImg",
+      "sha256": "9253e80a741257f936abb6b468f227e659e3fdd36bf65fd177daefa68d6ef93f",
+      "thumb": "thumbs/blue-etch.webp",
+      "preview": "reference/blue-etch.webp"
+    },
+    {
+      "key": "blue-etch-mag",
+      "label": "蓝雕磁票",
+      "labelEn": "Blue etched magnetic",
+      "family": "blue",
+      "canvas": {
+        "width": 809,
+        "height": 509
+      },
+      "background": {
+        "src": "front/blue-etch-mag.webp",
+        "width": 1058,
+        "height": 655,
+        "fit": "cover",
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "dx": 0,
+        "dy": 0
+      },
+      "adjust": {
+        "fit": "cover"
+      },
+      "originalElementId": "blueEtchMagImg",
+      "sha256": "3c95930e9d1cb725af97c258e66de21dd80bc800f957f20f9202c96ec3ae79df",
+      "thumb": "thumbs/blue-etch-mag.webp",
+      "preview": "reference/blue-etch-mag.webp"
+    },
+    {
+      "key": "red",
+      "label": "红色票",
+      "labelEn": "Red classic",
+      "family": "red",
+      "canvas": {
+        "width": 800,
+        "height": 535
+      },
+      "background": {
+        "src": "front/red.png",
+        "width": 800,
+        "height": 531,
+        "fit": "stretch",
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "dx": 10,
+        "dy": 20
+      },
+      "adjust": {
+        "checkinAlign": "endStationSuffix"
+      },
+      "originalElementId": "redImg",
+      "sha256": "4e766d7172de435c9551ab1ed196f21c766990446de80828e0e8ab12744cef8e",
+      "thumb": "thumbs/red.webp",
+      "preview": "reference/red.webp"
+    },
+    {
+      "key": "red-paper",
+      "label": "红纸票",
+      "labelEn": "Red paper",
+      "family": "red",
+      "canvas": {
+        "width": 800,
+        "height": 535
+      },
+      "background": {
+        "src": "front/red-paper.png",
+        "width": 800,
+        "height": 535,
+        "fit": "stretch",
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "dx": 10,
+        "dy": 20
+      },
+      "adjust": {
+        "checkinAlign": "endStationSuffix"
+      },
+      "originalElementId": "redPaperImg",
+      "sha256": "bfa4c95db103b7b38d3e13a9c4acc50e79e2121f4ec8e510241b0356e61e78c1",
+      "thumb": "thumbs/red-paper.webp",
+      "preview": "reference/red-paper.webp"
+    },
+    {
+      "key": "red-mag",
+      "label": "红磁票",
+      "labelEn": "Red magnetic",
+      "family": "red",
+      "canvas": {
+        "width": 800,
+        "height": 535
+      },
+      "background": {
+        "src": "front/red-mag.png",
+        "width": 800,
+        "height": 535,
+        "fit": "stretch",
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "dx": 10,
+        "dy": 20
+      },
+      "adjust": {
+        "allDy": 14,
+        "checkinDy": 14,
+        "checkinAlign": "endStationSuffix"
+      },
+      "originalElementId": "redMagImg",
+      "sha256": "6cbb7a5e1bfd2a70871a5743e076cec233837861a7f144bc73b872042ad58343",
+      "thumb": "thumbs/red-mag.webp",
+      "preview": "reference/red-mag.webp"
+    }
+  ]
+}

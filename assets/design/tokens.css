@@ -1,0 +1,160 @@
+/* ==========================================================================
+   Rail Memory · 铁路信号台设计令牌（light）
+   --------------------------------------------------------------------------
+   来源：TraceDot 4.1.8 的票面工坊样式（REA 静态分析）+ 本项目现有 UI 归一化。
+   说明：
+   - 本文件是「规范化后的最小令牌集」，不照搬 TraceDot 的全部历史变量；
+   - 只提供浅色主题，深色主题留到后续版本；
+   - 全站禁止 backdrop-filter；渐变必须是静态的，不做背景动画；
+   - 字体不随包分发：Nunito Sans 可选自托管，中文回退到系统字体。
+   ========================================================================== */
+
+:root {
+  /* ---------- raw · 青松墨阶 ---------- */
+  --td-pine-950: #080d0a;
+  --td-pine-900: #0c1310;
+  --td-pine-850: #111a15;
+  --td-pine-800: #16211b;
+  --td-pine-750: #1b2922;
+  --td-pine-700: #233529;
+  --td-pine-600: #324738;
+  --td-pine-500: #475f50;
+  --td-pine-400: #64796b;
+  --td-pine-300: #93a697;
+  --td-pine-200: #c2cfc4;
+  --td-pine-100: #e1eae3;
+
+  /* ---------- raw · 信号绿 ---------- */
+  --td-signal-400: #6fb894;
+  --td-signal-500: #3f9471;
+  --td-signal-600: #3f9471;
+  --td-signal-700: #2e7455;
+
+  /* ---------- raw · 冷纸与油墨 ---------- */
+  --td-paper-50: #fcfefc;
+  --td-paper-100: #f0f8f3;
+  --td-paper-200: #e0efe6;
+  --td-paper-300: #daeae1;
+  --td-paper-400: #c0dccc;
+  --td-ink-900: #1f3328;
+  --td-ink-700: #52685b;
+  --td-ink-500: #84a08f;
+
+  /* ---------- semantic · 表面与文字 ---------- */
+  --td-bg: #f0f8f3;
+  --td-bg-top: #f5fbf7;
+  --td-surface: #fcfefc;
+  --td-surface-2: #e0efe6;
+  --td-surface-3: #f0f8f3;
+  --td-field: #fffefb;
+  --td-text: #1f3328;
+  --td-text-dim: #52685b;
+  --td-text-muted: #84a08f;
+  --td-text-inverse: #fcfefc;
+
+  /* ---------- semantic · 描边 ---------- */
+  --td-border: #daeae1;
+  --td-border-strong: #c0dccc;
+  --td-hairline: #eae2d2;
+  --td-focus: #3f9471;
+
+  /* ---------- semantic · 强调与状态 ---------- */
+  --td-accent: #3f9471;
+  --td-accent-strong: #2e7455;
+  --td-accent-bright: #6fb894;
+  --td-accent-soft: rgba(63, 148, 113, 0.14);
+  --td-accent-glow: rgba(63, 148, 113, 0.24);
+  --td-danger: #d9383e;
+  --td-danger-soft: rgba(217, 56, 62, 0.12);
+  --td-warning: #a86412;
+  --td-warning-soft: rgba(168, 100, 18, 0.12);
+  --td-info: #4f7fb8;
+  --td-info-soft: rgba(108, 155, 210, 0.16);
+  --td-success: #0e8a6e;
+
+  /* ---------- 阴影：纸面，而不是玻璃 ---------- */
+  --td-shadow-xs: 0 1px 2px rgba(58, 54, 48, 0.04);
+  --td-shadow-sm: 0 2px 8px rgba(58, 54, 48, 0.06), 0 1px 3px rgba(58, 54, 48, 0.04);
+  --td-shadow-md: 0 8px 24px -16px rgba(58, 54, 48, 0.28), 0 2px 6px rgba(58, 54, 48, 0.04);
+  --td-shadow-lg: 0 18px 44px -24px rgba(58, 54, 48, 0.34), 0 4px 12px rgba(58, 54, 48, 0.05);
+  --td-shadow-pop: 0 24px 64px -28px rgba(12, 19, 16, 0.4);
+
+  /* ---------- 圆角 ---------- */
+  --td-radius-xs: 6px;
+  --td-radius-sm: 8px;
+  --td-radius-md: 10px;
+  --td-radius-lg: 14px;
+  --td-radius-xl: 18px;
+  --td-radius-2xl: 24px;
+  --td-radius-pill: 999px;
+
+  /* ---------- 间距 ---------- */
+  --td-space-1: 2px;
+  --td-space-2: 4px;
+  --td-space-3: 6px;
+  --td-space-4: 8px;
+  --td-space-5: 10px;
+  --td-space-6: 12px;
+  --td-space-7: 14px;
+  --td-space-8: 16px;
+  --td-space-10: 20px;
+  --td-space-12: 24px;
+  --td-space-14: 28px;
+  --td-space-16: 32px;
+  --td-space-20: 40px;
+  --td-space-24: 48px;
+
+  /* ---------- 排印 ---------- */
+  --td-font-ui: "Nunito Sans", "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC",
+    "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --td-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "SFMono-Regular",
+    Consolas, "Liberation Mono", "Courier New", monospace;
+  --td-font-ticket: "Times New Roman", "PingFang SC", "HarmonyOS Sans SC",
+    "Noto Sans SC", "Microsoft YaHei", serif;
+  --td-font-ticket-number: Arial, "PingFang SC", "HarmonyOS Sans SC",
+    "Noto Sans SC", "Microsoft YaHei", sans-serif;
+
+  --td-text-2xs: 10px;
+  --td-text-xs: 11px;
+  --td-text-sm: 12px;
+  --td-text-base: 13px;
+  --td-text-md: 14px;
+  --td-text-lg: 16px;
+  --td-text-xl: 18px;
+  --td-text-2xl: 22px;
+  --td-text-3xl: 28px;
+  --td-text-4xl: 34px;
+
+  /* ---------- 控件与层级 ---------- */
+  --td-control-sm: 32px;
+  --td-control-md: 36px;
+  --td-control-lg: 40px;
+  --td-touch: 44px;
+
+  --td-z-base: 1;
+  --td-z-sticky: 20;
+  --td-z-dropdown: 40;
+  --td-z-overlay: 60;
+  --td-z-modal: 80;
+  --td-z-toast: 100;
+
+  /* ---------- 动效 ---------- */
+  --td-dur-fast: 140ms;
+  --td-dur: 200ms;
+  --td-dur-slow: 320ms;
+  --td-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --td-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --td-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 用户要求减弱动效时，全部瞬时切换 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
