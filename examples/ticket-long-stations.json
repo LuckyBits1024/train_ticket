@@ -1,0 +1,18 @@
+{
+  "from_station": "上海虹桥站",
+  "to_station": "乌鲁木齐站",
+  "from_pinyin": "Shanghaihongqiao",
+  "to_pinyin": "Wulumuqi",
+  "train": "G123",
+  "date": "2026-10-19",
+  "time": "08:05",
+  "coach": "3",
+  "seat": "12F",
+  "seat_type": "一等座",
+  "price": "1234.50",
+  "passenger_name": "测试乘车人",
+  "gate": "A12/B12",
+  "ticket_number": "A000002",
+  "issuing_station": "上海虹桥站",
+  "channel": "网"
+}

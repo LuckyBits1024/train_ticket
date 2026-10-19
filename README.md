@@ -6,6 +6,7 @@
 - 登录态（Cookie）保存在本机，重启服务后自动恢复；
 - 查询最近一年的积分流水，点击任意一条可展开**乘车明细**（乘车人、乘车日期、车次、区间、席别、车厢号、订单号）；
 - 一键导出这一年（或任意区间）的**全部流水 + 全部乘车明细**为 CSV / JSON；
+- 用积分流水直接批量生成**纪念车票**（蓝色磁介质 / 经典粉红两款）。
 
 > 仅供查询自己的 12306 会员积分。接口来自 12306 网页端，不是官方公开 API，页面改版后可能需要调整。
 
@@ -59,6 +60,137 @@ CSV 为 UTF-8 with BOM，Excel 直接双击打开不会乱码。列包括：
 如果一条流水对应多位乘车人，会展开成多行；没有明细的流水保留一行、明细列留空。
 
 JSON 则保留完整结构：`range / user / summary / totals / records[]`，每条 `record` 下有 `details[]`，`details[].raw` 是接口原始字段，便于以后做二次处理。
+
+## 纪念车票图片生成
+
+使用已确认的 Rail Memory v2 底图，本地绘制字段并输出 PNG。蓝票、粉红票均保留底部纪念说明，顶部没有“纪念”大字，二维码区域留空。生成过程不联网、不调用图像 API，也不依赖积分查询服务。
+
+### 安装与运行
+
+此功能需要 Python 3.9+ 和 Pillow；上面的积分查询服务仍然只需要 Node.js。首次安装：
+
+```bash
+python3 -m venv .venv-ticket
+.venv-ticket/bin/python -m pip install -r requirements-ticket.txt
+```
+
+修改 `examples/ticket.json`，然后生成蓝、粉两款：
+
+```bash
+npm run ticket -- --data examples/ticket.json --style both --output output/tickets/my-trip.png
+```
+
+输出为 `output/tickets/my-trip-blue.png` 和 `output/tickets/my-trip-pink.png`。传入 `--style blue` 或 `--style pink` 时只输出指定的一张，使用原始文件名。图片默认宽度为 1800 像素，可用 `--width 2400` 调整；底纹来自固定栅格图，文字按输出分辨率绘制。同名输出会被替换。
+
+也可以直接传字段，无须准备 JSON：
+
+```bash
+npm run ticket -- \
+  --from 北京南 --to 天津 \
+  --from-pinyin Beijingnan --to-pinyin Tianjin \
+  --train C2021 --date 2014-08-28 --time 10:35 \
+  --coach 01 --seat 02A --seat-type 二等座 \
+  --price 57 --name 王某某 --gate 18 \
+  --style blue --output output/tickets/beijing-tianjin.png
+```
+
+两种输入可混用，命令行参数优先，例如：
+
+```bash
+npm run ticket -- --data examples/ticket.json --name 李某某 --seat 05F --style pink
+```
+
+不使用 Node.js 时，可直接运行 `.venv-ticket/bin/python scripts/generate-ticket.py`，参数相同。`--data -` 从标准输入读取 JSON，`--help` 查看全部参数。`TICKET_PYTHON` 环境变量可为 npm 入口指定其他 Python 解释器。
+
+Windows 安装命令为 `py -m venv .venv-ticket` 和 `.venv-ticket\Scripts\python.exe -m pip install -r requirements-ticket.txt`；npm 入口会自动选择对应虚拟环境。
+
+### 从 12306 积分导出直接生成
+
+积分查询页导出的 JSON（含 `records[].details[]`）或 CSV 都可以直接批量生成：
+
+```bash
+# 先试 5 张，确认效果
+npm run ticket -- --points data/exports/12306-points_2025-10-18_2026-10-18.csv \
+  --style blue --limit 5 --output-dir output/tickets/points
+
+# 全部生成：每条乘车记录一张，both 同时出蓝/粉两张
+npm run ticket -- --points data/exports/12306-points_2025-10-18_2026-10-18.csv \
+  --style both --width 1800 --output-dir output/tickets/points
+```
+
+- `--points` 支持 `.json`（本项目的 JSON 导出）和 `.csv`（本项目/积分页导出的表格）。
+- 一条乘车明细生成一张；同一订单多位乘车人会生成多张。
+- `商户消费`、没有车次/日期/站名的流水会被跳过，并在终端提示。
+- 文件名是 `日期_车次_出发-到达_序号[-blue|-pink].png`，同名会覆盖。
+- 批量模式默认输出到 `output/tickets/points`，可用 `--output-dir` 改。
+- `--style both` 会把 50 条生成 100 张、约 140MB（1800px）；建议先用 `--limit 5` 看效果。
+- 订单号（`E…`）不会写进票面：票面底部的流水号是 21 位票号，不是订单号。
+
+#### 积分明细能提供哪些票面字段
+
+| 票面字段 | 积分明细 | 来源 / 说明 |
+| --- | --- | --- |
+| 出发站 / 到达站 | ✅ | `board_station_name` / `arrive_station_name` |
+| 车次 | ✅ | `station_train_code` |
+| 乘车日期 | ✅ | `train_date` |
+| 车厢 | ✅ | `coach_no` |
+| 席别 | ✅ | `seat_type_name` |
+| 乘车人 | ✅ | `v_assignee_id_name` |
+| 站点拼音 | ➖ | 积分接口没有；脚本用 `src/data/stations-pinyin.json` 按站名补 |
+| 发车时间 | ❌ | 积分流水只有日期，没有时刻；票面留空，不猜 |
+| 座位号 | ❌ | 只有车厢号，没有 02A 这类座位号 |
+| 票价 | ❌ | 积分流水不含金额 |
+| 检票口 / 票号 / 流水号 / 出票车站 / 渠道 | ❌ | 留空 |
+
+所以默认生成的是「日期 + 车站 + 车次 + 车厢 + 席别 + 姓名」的纪念版，不会伪造时间、票价或票号。如果手上有原始车票/订单，可以只生成某一条并补字段：
+
+```bash
+npm run ticket -- --points data/exports/12306-points_2025-10-18_2026-10-18.csv \
+  --index 18 --time 10:35 --seat 02A --price 513 --style blue
+```
+
+`--index` 是批量输入里的第 N 条（从 1 开始），补字段只对这一条生效；不指定 `--index` 时不允许逐字段覆盖。
+
+### 字段
+
+JSON 支持下列英文键，也支持表中对应的中文键。中英文同名字段不能重复出现。必填字段只有出发站、到达站、车次、日期；时间可选（积分导出没有时刻，留空时票面只显示日期）。其余字段省略时留空；不会自动填入模板里的假票号、票价或姓名。
+
+> 注意：本项目 JSON 里 `details[].seat` 是**席别名称**（如“二等座”），适配器会把它填到票面的 `seat_type`，座位号留空；只有显式提供 `seat_type` 时，`seat` 才会被当作座位号（如 `02A`）。
+
+| JSON 键 | 中文键 | 命令行参数 | 说明 |
+| --- | --- | --- | --- |
+| `from_station` | 出发站 | `--from` | 必填；可带末尾“站”，绘制时只显示一次 |
+| `to_station` | 到达站 | `--to` | 必填；长站名自动缩放 |
+| `train` | 车次 | `--train` | 必填，例如 C2021、G123 |
+| `date` | 日期 | `--date` | 必填，YYYY-MM-DD，校验实际日期 |
+| `time` | 时间 | `--time` | 可选，24 小时制 HH:MM；留空只显示日期 |
+| `from_pinyin` | 出发站拼音 | `--from-pinyin` | 可选；手动模式未填留空，`--points` 模式用站名拼音表补 |
+| `to_pinyin` | 到达站拼音 | `--to-pinyin` | 同上 |
+| `coach` | 车厢 | `--coach` | 1～99，自动补齐两位 |
+| `seat` | 座位 | `--seat` | 例如 02A、086、无座 |
+| `seat_type` | 席别 | `--seat-type` | 例如 二等座、一等座、商务座 |
+| `price` | 票价 | `--price` | 非负金额，最多两位小数，0 也可用 |
+| `passenger_name` | 姓名 | `--name` | 可选 |
+| `id_number` | 证件号 | `--id-number` | 默认自动脱敏；已有星号的值保持原样 |
+| `gate` | 检票口 | `--gate` | 例如 18、A12/B12 |
+| `ticket_number` | 票号 | `--ticket-number` | 左上红色编号 |
+| `serial_number` | 流水号 | `--serial-number` | 底部流水号；含前导零时必须写 JSON 字符串 |
+| `issuing_station` | 出票车站 | `--issuing-station` | 例如 北京南，自动补齐“站售”后缀 |
+| `channel` | 购票渠道 | `--channel` | 例如 网；未填留空 |
+
+需要按输入原样显示证件号时增加 `--show-id`。示例数据仅供排版演示，长站名示例 `examples/ticket-long-stations.json` 不代表实际列车路线或票价。
+
+### 字体与素材
+
+底图保存在 `assets/ticket-template/`，从已确认的模板提取。系统字体按站名、正文、拼音/车次、数字四类分别绘制，附属汉字缩小并对齐基线。macOS 默认使用华文黑体、宋体、Times New Roman、Arial Narrow；Windows/Linux 会尝试对应的中文、衬线和窄体字体。不同系统的字体外观可能略有差异，缺少字体时脚本会明确报错。
+
+可使用 `--font-hei`、`--font-song`、`--font-latin`、`--font-number` 覆盖字体路径。TTC 字体集合可用 `文件.ttc#索引` 指定子字体，例如 `--font-song '/System/Library/Fonts/Supplemental/Songti.ttc#6'`。项目不分发系统字体文件。
+
+离线自检覆盖输入校验、脱敏、两种票面、空白二维码、可选字段/时间留空、积分 JSON/CSV 适配和 CLI 批量输出：
+
+```bash
+npm run test:ticket
+```
 
 ## 它是怎么工作的
 
@@ -174,20 +306,28 @@ train_ticket/
 │   ├── store.js              # data/session.json 读写（0600）
 │   ├── rail.js               # 12306 接口客户端 + 字段归一化
 │   ├── export.js             # 翻页、抓明细、CSV/JSON 生成
+│   ├── ticket_image.py       # 纪念车票绘制（Pillow）
+│   ├── points_ticket.py      # 积分 JSON/CSV -> 车票字段适配
 │   └── data/
 │       ├── stations.json     # 电报码 -> 站名
+│       ├── stations-pinyin.json  # 站名 -> 拼音
 │       └── seats.json        # 席别代码 -> 名称
+├── assets/ticket-template/   # 纪念车票底图（blue.png / pink.png）
+├── output/tickets/            # 生成的纪念车票（gitignored）
 ├── public/
 │   ├── index.html            # 复刻的积分查询页面
 │   ├── style.css
 │   └── app.js                # 扫码弹窗、查询、展开、分页、导出
 ├── scripts/
-│   ├── build-stations.mjs    # 重新生成 stations.json
+│   ├── build-stations.mjs    # 重新生成站名/拼音表
+│   ├── generate-ticket.py    # 单张/批量生成入口
+│   ├── generate-ticket.mjs   # npm run ticket 入口
+│   ├── test-ticket.py        # npm run test:ticket
 │   └── smoke-test.mjs        # npm test 的离线自检
 └── data/                     # 运行时生成：session.json、exports/
 ```
 
-重新生成站名表（12306 更新车站后）：
+重新生成站名表/站名拼音表（12306 更新车站后）：
 
 ```bash
 npm run build:stations

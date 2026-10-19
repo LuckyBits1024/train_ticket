@@ -1,0 +1,30 @@
+Use case: text-localization / precise-object-edit.
+Edit target: Image 1, the previously generated double-ticket template sheet.
+Reference only: Image 2 is the original blue Chinese railway paper ticket photograph; Image 3 is the original pink Chinese railway paper ticket photograph. Inspect their typography very closely.
+Produce a revised high-resolution PNG of Image 1. Preserve the same two-panel page, ticket geometry, colors, blank QR squares, placeholder wording and bottom disclaimer. Correct the typeface system using images 2 and 3 as the authoritative visual references. This is an image EDIT, not a new layout concept.
+
+REQUIRED EDIT 1:
+Completely remove the large red "纪念" title from the top center of BOTH the blue ticket and the pink ticket. Fill the removed lettering with the surrounding unbroken pale background texture. This upper central area must be empty, with no heading, no substitute text, no watermark, no "票样", no "样票". Keep only the existing small bottom line "纪念车票 · 不作乘车凭证" as the commemorative designation.
+
+REQUIRED EDIT 2 — meticulous typography correction:
+The current large station text has thick triangular Song/Ming serifs and is much heavier than the original. It is incorrect. Redraw station names in the original's upright Chinese Heiti / blackface printed railway lettering: squared structures, plain minimally flared stroke endings, nearly even stroke width, medium-bold but NOT extra-bold, no triangular Song serifs, no calligraphy. In "出发站" and "到达站", the main two characters are large, while the trailing "站" must be only about 60% of the main character height and aligned to their baseline, just as "站" is in both original references. Main station characters should be slightly smaller, lighter and more loosely spaced than Image 1.
+The Latin station labels "Departure" and "Arrival" must mimic the originals' "Beijingnan" and "Tianjin": distinctly tall, narrow, condensed upright serif/typewriter letters, regular-to-medium weight, clear letter spacing, NOT bold Times New Roman. Letters are narrower and lighter than in the current template.
+The centered train "G0000" should mimic original "C2021": slender tall regular-weight upright serif glyphs with fine strokes and subtle serifs, almost typewriter-like, NOT bold. Keep its long fine right-pointing arrow below.
+Red upper-left serial "A000000": narrow monospaced sans-serif printed characters with uniform line weight, noticeably lighter than Image 1; no Times-style serifs.
+Date/time placeholder "YYYY年MM月DD日 HH:mm开": imitate the original ticket's narrow upright sans-serif numerals and HH/mm placeholder glyphs, with rounded zero-like forms and even medium-weight strokes; no Times numerals or serif numberforms. All small Chinese unit suffixes 年/月/日/开 must be only about 58% of the digit height, baseline aligned. The full date row must fit comfortably left of the carriage/seat field. Preserve spacing between groups.
+Carriage/seat "00车00A号": the digits and A are the same narrow sans-serif print face as the date, with 车 and 号 at about 58% height, baseline aligned. No bold Times numbers.
+Fare "¥000.0元": numerals are the same narrow medium-weight sans-serif printed figures as in original "57.0", regular width rather than heavily bold; ¥ and 元 are noticeably smaller than the numerals.
+Gate "检票口00": original-style regular Chinese Song/Ming type for Chinese characters and regular upright digits; slimmer and less bold than Image 1.
+"二等座", "限乘当日当次车", "网" and passenger "姓名": regular or medium Song/Ming-style Chinese print face with thin horizontal and thicker vertical strokes. These secondary text lines must look like the original scanned printing: lighter and smaller than the current overly bold headings.
+Passenger masked line: keep "******************  姓名", but use slimmer narrow characters and normal-weight name text like the original.
+Dashed message box lines "买票请到12306  发货请到95306" / "中国铁路祝您旅途愉快": moderate regular-to-medium Song print, preserve the two-line hierarchy; avoid heavy slab-serif type.
+Bottom serial "00000000000000000000": original-style narrow tall machine-printed identifier, tightly condensed, modest uneven ink impression. "出票车站" medium Chinese printing.
+Keep original-like slightly imperfect printed ink edges, very subtle natural paper/ink texture, yet clean and highly legible. No artificial heavy grunge or large distress holes.
+Maintain a clear hierarchy: station names largest, train a little smaller, date/time next, secondary Chinese text smaller. Avoid all-bold typography.
+
+INVARIANTS:
+Keep both the blue upper and pink lower templates. Do not introduce actual trip data. Preserve exact current placeholder content (including A000000, G0000, Departure, Arrival, YYYY年MM月DD日 HH:mm开, 00车00A号, ¥000.0元, 二等座, 网, 限乘当日当次车, masked passenger, message box, serial and 出票车站). Only the size/weight/glyph design/spacing of fields should change to match the supplied photographs.
+Keep QR areas completely blank with their thin dashed square outlines. Do NOT generate any QR code or barcode.
+Keep the small bottom commemorative note on each ticket exactly: "纪念车票 · 不作乘车凭证", and make it legible.
+Keep the same background designs, white sheet margins, flat front-facing artwork, no perspective. No other new text, logos, badges, or headlines.
+Compare the output against the original photographs before completion: large station names must NOT use the current triangular-serif face; red serials and date/price numbers must NOT use Times New Roman; top center must be empty.
