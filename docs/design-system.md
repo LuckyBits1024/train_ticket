@@ -50,7 +50,7 @@
 
 - **Nunito Sans**：仅 Latin/数字。OFL 许可，可自托管 woff2；不联网加载。若不引入，回退到系统 sans，视觉差异可接受。
 - **中文**：PingFang SC → HarmonyOS Sans SC → Noto Sans SC → Microsoft YaHei。
-- **票面**：Times New Roman + 中文回退；票号 Arial（见 `ticket-template-spec.md`）。
+- **票面**：默认系统无衬线（数字/英文/中文同栈，与参考图一致）；只有用户显式选择字体方案时才用 Times/Arial（见 `ticket-template-spec.md`）。
 - **营销站**用的是 Plus Jakarta Sans + Noto Sans SC + JetBrains Mono；工坊不跟随，避免多一套字体。
 - 字号阶：10/11/12/13/14/16/18/22/28/34；正文 13–14，表单 13，标题 18–22，票面按画布。
 - 行高：UI 1.5；表单 1.4；票面不设行高（逐行定位）。
@@ -200,3 +200,10 @@ box-shadow: var(--td-shadow-md);
   - 严禁用于伪造、报销、欺诈等违规场景；
   - 违规使用后果由使用者自行承担。
 - 不要使用“官方”“12306 授权”“可报销”等误导性表述。
+
+## 10. 本分支实现截图
+
+- `assets/design/screenshots/ticket-studio-implementation-desktop.webp`
+- `assets/design/screenshots/ticket-studio-implementation-mobile.webp`
+
+桌面端为双列（预览+导入 / 表单+乘客），手机端为单列（预览 → 表单 → 导入 → 乘客）+ 底部快捷导航；样式与令牌均落在 `public/ticket.css`。

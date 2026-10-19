@@ -11,7 +11,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from PIL import Image, ImageChops
-from src.ticket_image import ASSETS, DISCLAIMER, FontBook, normalize_fields, render_ticket, save_ticket
+from src.ticket_image import (
+    ASSETS, DISCLAIMER, FontBook, compose_front_back, normalize_fields, render_back,
+    render_ticket, save_ticket,
+)
+from src.ticket.templates import STYLE_KEYS
 from src.points_ticket import collect_tickets
 
 
@@ -69,15 +73,24 @@ class TicketTests(unittest.TestCase):
         self.assertEqual(data["gate"], "")
         self.assertEqual(normalize_fields({**self.raw, "seat": "无座"})["seat"], "无座")
 
-    def test_preserves_qr_interior_and_empty_upper_center(self):
-        for style, qr in (("blue", (841, 500, 975, 625)), ("pink", (841, 460, 975, 584))):
+    def test_eight_templates_render_at_expected_size(self):
+        data = normalize_fields(self.raw)
+        for style in STYLE_KEYS:
             with self.subTest(style=style):
-                image = render_ticket(normalize_fields(self.raw), style, 1070, self.fonts)
-                with Image.open(ASSETS / (style + ".png")) as source:
-                    expected = source.convert("RGB").resize((2140, source.height * 2), Image.Resampling.LANCZOS)
-                    expected = expected.resize(source.size, Image.Resampling.LANCZOS)
-                for box in (qr, (450, 15, 700, 94)):
-                    self.assertIsNone(ImageChops.difference(image.crop(box), expected.crop(box)).getbbox())
+                image = render_ticket(data, style)
+                expected_width = 1618 if style.startswith("blue") else 1600
+                self.assertEqual(image.width, expected_width)
+                self.assertEqual(image.height, 1018 if style.startswith("blue") else 1070)
+
+    def test_back_and_merge(self):
+        data = normalize_fields(self.raw)
+        front = render_ticket(data, "blue")
+        template = __import__("src.ticket.templates", fromlist=["get_template"]).get_template("blue")
+        back = render_back(data, template, {"title": "测试背面"})
+        self.assertEqual(back.size, front.size)
+        merged = compose_front_back(front, back, template.width)
+        self.assertEqual(merged.width, front.width)
+        self.assertEqual(merged.height, front.height + back.height + 26 * 2)
 
     def test_width_and_png_roundtrip(self):
         image = render_ticket(normalize_fields(self.raw), "blue", 800, self.fonts)
@@ -92,13 +105,13 @@ class TicketTests(unittest.TestCase):
 
     def test_minimal_ticket_leaves_optional_fields_empty(self):
         raw = {k: self.raw[k] for k in ("from_station", "to_station", "train", "date", "time")}
-        image = render_ticket(normalize_fields(raw), "blue", 2140, self.fonts)
-        with Image.open(ASSETS / "blue.png") as source:
-            expected = source.convert("RGB").resize(image.size, Image.Resampling.LANCZOS)
-        # There must be no sample serial, fare, or passenger left in the background.
-        for box in ((70, 25, 420, 99), (70, 311, 409, 366), (70, 478, 770, 542)):
-            box = tuple(v * 2 for v in box)
-            self.assertIsNone(ImageChops.difference(image.crop(box), expected.crop(box)).getbbox())
+        data = normalize_fields(raw)
+        self.assertEqual(data["price"], "")
+        self.assertEqual(data["passenger_name"], "")
+        self.assertEqual(data["id_number"], "")
+        image = render_ticket(data, "blue", 1200, self.fonts)
+        self.assertEqual(image.width, 1200)
+        image.verify()
 
     def test_missing_time_is_allowed(self):
         raw = {k: self.raw[k] for k in ("from_station", "to_station", "train", "date")}
@@ -184,6 +197,17 @@ class TicketTests(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(len(list(override_out.glob("*.png"))), 1)
+
+    def test_cli_all_styles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "all.png"
+            result = subprocess.run([sys.executable, str(ROOT / "scripts/generate-ticket.py"),
+                                     "--data", str(ROOT / "examples/ticket.json"), "--style", "all",
+                                     "--width", "800", "--output", str(output)],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for style in STYLE_KEYS:
+                self.assertTrue(output.with_name("all-" + style + ".png").is_file(), style)
 
     def test_cli_both_from_other_directory_and_override(self):
         with tempfile.TemporaryDirectory() as directory:

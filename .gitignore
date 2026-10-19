@@ -7,3 +7,4 @@ __pycache__/
 output/tickets/
 .analysis/
 output/_analysis/
+.cache/

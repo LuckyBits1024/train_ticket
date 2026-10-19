@@ -28,3 +28,10 @@ TraceDot 最值得复用的是**八款真实票面底图 + 基于 809×509 逻�
 - 底图来自第三方应用，权利状态见 `assets/ticket-template/v2/NOTICE.md`。仅限个人纪念用途；不得用于报销、乘车或伪造。
 - 本文档中的姓名、证件号、票号、二维码均为虚构示例。
 - TraceDot 的实际版本号存在漂移：安装包/页面写 4.1.8，票面模块源码头写 V6.3.0，官网更新日志写到 V4.9.3。本文以**实际二进制内容**为准，版本号只作引用。
+
+## 实现状态
+
+- Web 车票工坊（M1–M4）已在本分支实现：`public/ticket.html`、`public/js/ticket/*`、`/api/ticket/*`、`/assets/*`；
+- 前端纯函数测试：`npm run test:web`（23 个用例）；Python 测试：`.venv-ticket/bin/python scripts/test-ticket.py`（16 个用例）；
+- Python CLI 的八款 parity（M5）已完成：`--style all`、`--scale`、`--back`、`--back-split`，旧的 `blue/pink/both` 命令保持兼容。
+- 实现截图见 `assets/design/screenshots/ticket-studio-implementation-*.webp`。

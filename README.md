@@ -6,7 +6,7 @@
 - 登录态（Cookie）保存在本机，重启服务后自动恢复；
 - 查询最近一年的积分流水，点击任意一条可展开**乘车明细**（乘车人、乘车日期、车次、区间、席别、车厢号、订单号）；
 - 一键导出这一年（或任意区间）的**全部流水 + 全部乘车明细**为 CSV / JSON；
-- 用积分流水直接批量生成**纪念车票**（蓝色磁介质 / 经典粉红两款）。
+- 用积分流水直接批量生成**纪念车票**，并在浏览器「车票工坊」里实时编辑、导入 PDF、制作背面、批量导出。
 
 > 仅供查询自己的 12306 会员积分。接口来自 12306 网页端，不是官方公开 API，页面改版后可能需要调整。
 
@@ -29,6 +29,25 @@ node server.js
 
 ```bash
 PORT=8080 node server.js
+```
+
+## 车票工坊（Web）
+
+服务启动后打开 <http://127.0.0.1:5178/ticket.html>（端口以终端输出为准），或从积分页顶部导航的「车票工坊」进入。
+
+- 八款票面：蓝色票、蓝纸票、蓝磁票、蓝雕票、蓝雕磁票、红色票、红纸票、红磁票；
+- Canvas 实时预览，支持字号 80%–130%、字重 400–800、中文/英文/数字三套字体方案；
+- 全国 3404 个车站的站名 / 全拼 / 首字母联想；
+- 常用乘客、本地草稿自动保存（只存本机）；
+- 12306 行程信息提示 / 铁路电子发票 PDF 导入，规则为**自动回填 → 手动优先 → 非空优先**；二维码缺失时回退 12306 首页；
+- 车票背面编辑器：标题、条款、底图、纯色、自定义图片、遮罩，支持正反面合并或分开导出；
+- 单张 2x PNG（蓝 1618×1018 / 红 1600×1070）或批量 ZIP，带导出进度；
+- 导出图带「纪念车票 · 不作乘车凭证」标识。
+
+PDF/照片/证件号全部在浏览器本地处理，不上传服务端；首次进入需确认免责声明。详细设计与验收见 [docs/README.md](docs/README.md)。
+
+```bash
+npm run test:web     # 前端纯函数测试（Node 内置 test runner）
 ```
 
 ## 功能说明
@@ -63,13 +82,13 @@ JSON 则保留完整结构：`range / user / summary / totals / records[]`，每
 
 ## 纪念车票图片生成
 
-使用已确认的 Rail Memory v2 底图，本地绘制字段并输出 PNG。蓝票、粉红票均保留底部纪念说明，顶部没有“纪念”大字，二维码区域留空。生成过程不联网、不调用图像 API，也不依赖积分查询服务。
+使用 Rail Memory v2 的八款底图，本地绘制字段并输出 PNG。票面保留“纪念车票 · 不作乘车凭证”标识；二维码在安装可选依赖 `qrcode` 后自动生成。生成过程不联网、不调用图像 API，也不依赖积分查询服务。
 
-> **模板升级进行中**：`feat/ticket-template-upgrade` 分支已拆出八款新版票面底图（蓝/蓝纸/蓝磁/蓝雕/蓝雕磁/红/红纸/红磁），并完成 TraceDot 4.1.8 的逆向分析与开发规范。设计、坐标、PDF 规则与分阶段任务见 [docs/README.md](docs/README.md)。当前 CLI 仍输出 `blue` / `pink` 两款，待 Python 渲染器完成 M5 后切换；Web 车票工坊为新增页面，不影响现有积分查询。
+> **模板升级已完成**：`feat/ticket-template-upgrade` 分支已拆出八款新版票面底图（蓝/蓝纸/蓝磁/蓝雕/蓝雕磁/红/红纸/红磁），Web 与 Python CLI 均已支持；`--style both` 仍保留为 `blue + pink` 的旧版兼容组合。设计、坐标、PDF 规则与验收见 [docs/README.md](docs/README.md)。
 
 ### 安装与运行
 
-此功能需要 Python 3.9+ 和 Pillow；上面的积分查询服务仍然只需要 Node.js。首次安装：
+此功能需要 Python 3.9+、Pillow（二维码还需要 `qrcode`）；上面的积分查询服务仍然只需要 Node.js。首次安装：
 
 ```bash
 python3 -m venv .venv-ticket
@@ -82,7 +101,7 @@ python3 -m venv .venv-ticket
 npm run ticket -- --data examples/ticket.json --style both --output output/tickets/my-trip.png
 ```
 
-输出为 `output/tickets/my-trip-blue.png` 和 `output/tickets/my-trip-pink.png`。传入 `--style blue` 或 `--style pink` 时只输出指定的一张，使用原始文件名。图片默认宽度为 1800 像素，可用 `--width 2400` 调整；底纹来自固定栅格图，文字按输出分辨率绘制。同名输出会被替换。
+输出为 `output/tickets/my-trip-blue.png` 和 `output/tickets/my-trip-pink.png`。传入 `--style blue` 或 `--style pink` 时只输出指定的一张，使用原始文件名。八款新模板默认按 2x 输出（蓝 1618px / 红 1600px），可用 `--width 2400` 或 `--scale 1|2|3` 调整；底纹来自固定栅格图，文字按输出分辨率绘制。同名输出会被替换。
 
 也可以直接传字段，无须准备 JSON：
 
@@ -105,6 +124,24 @@ npm run ticket -- --data examples/ticket.json --name 李某某 --seat 05F --styl
 不使用 Node.js 时，可直接运行 `.venv-ticket/bin/python scripts/generate-ticket.py`，参数相同。`--data -` 从标准输入读取 JSON，`--help` 查看全部参数。`TICKET_PYTHON` 环境变量可为 npm 入口指定其他 Python 解释器。
 
 Windows 安装命令为 `py -m venv .venv-ticket` 和 `.venv-ticket\Scripts\python.exe -m pip install -r requirements-ticket.txt`；npm 入口会自动选择对应虚拟环境。
+
+### 八款新模板与背面
+
+```bash
+# 八款全部生成（文件自动加 -blue / -blue-paper … 后缀）
+npm run ticket -- --data examples/ticket.json --style all --output output/tickets/trip.png
+
+# 生成正面 + 背面合并图
+npm run ticket -- --data examples/ticket.json --style blue-etch --back \
+  --back-title "纪念背面" --back-terms-size 19 \
+  --output output/tickets/trip.png
+
+# 分开导出正面 / 背面
+npm run ticket -- --data examples/ticket.json --style red --back --back-split \
+  --output output/tickets/trip.png
+```
+
+`--back-bg` 可选 `blue / blue-paper / … / solid / custom`；`--back-solid`、`--back-image`、`--back-mask-alpha`、`--back-terms-file` 分别控制纯色、自定义图、遮罩和条款文本。背面默认使用与正面同款底图。
 
 ### 从 12306 积分导出直接生成
 

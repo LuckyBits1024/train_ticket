@@ -118,6 +118,8 @@ REA 的 Electron fuse 读取结果（`inspect-electron-fuses`）：
 
 `textBaseline = "middle"`，默认黑色；票号红色。蓝色家族 `dx=0, dy=0`，红色家族 `dx=10, dy=20`。
 
+> 表中的 `Times`/`Arial` 是源码实参；V6.2.6 的 `normalizeTicketFamily()` 会把它们替换成系统无衬线栈，参考图即按系统无衬线渲染。
+
 | 元素 | 位置 / 字号 | 备注 |
 | --- | --- | --- |
 | 票号 | `(45, 50)` Arial 40，字距 4，红色 | 左对齐 |
@@ -236,7 +238,7 @@ red-mag:     allDy +14（票号/检票口以外整体下移）, checkinDy +14,
 - `https://jidiandian.top/release/TraceDot-V4.1.8.html` 与桌面端 `app/index.html` **字节完全一致**（SHA-256 `50e3dc11…28bcb0`）。所以“网页端/桌面端”是同一份单文件，不是两套代码。
 - 官网首页（`https://jidiandian.top/website/`）是另一套营销站：Plus Jakarta Sans + Noto Sans SC + JetBrains Mono，CDN Tailwind；与工坊的实际字体栈不同。
 - 工坊实际 UI 字体栈：`PingFang SC, HarmonyOS Sans SC, Noto Sans SC, Microsoft YaHei, sans-serif`；**没有加载 Nunito Sans**。
-- 票面字体：`Times New Roman` / `Arial`，中文由系统字体回退；没有内嵌票面字体文件。
+- 票面字体：源码里写的是 `Times New Roman` / `Arial`，但 V6.2.6 的 `normalizeTicketFamily()` 会把它们替换成**系统无衬线栈**；参考图的数字/英文/中文都是系统无衬线。没有内嵌票面字体文件。
 - 版本漂移：安装包 4.1.8、页面标题 4.1.8、票面模块头 V6.3.0、官网更新日志到 V4.9.3。做竞品对比时要看**代码内容**，不要只看版本号。
 
 ## 8. 可复用 / 不复用清单

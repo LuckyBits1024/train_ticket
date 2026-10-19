@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#F5FBF7" />
+    <title>车票工坊 · 纪念车票</title>
+    <link rel="stylesheet" href="/assets/design/tokens.css" />
+    <link rel="stylesheet" href="/ticket.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233F9471'/%3E%3Cpath d='M16 24h32v6a4 4 0 0 0 0 4v6H16v-6a4 4 0 0 0 0-4v-6Z' fill='none' stroke='white' stroke-width='3'/%3E%3Cpath d='M26 24v16' stroke='white' stroke-width='2.4' stroke-dasharray='3 3'/%3E%3C/svg%3E"
+    />
+    <script src="/js/vendor/qrcode.min.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="返回积分查询">
+          <span class="brand-mark" aria-hidden="true">
+            <svg class="ic"><use href="#i-ticket"></use></svg>
+          </span>
+          <span class="brand-text">
+            <strong>车票工坊</strong>
+            <small>PAPER TICKET STUDIO</small>
+          </span>
+        </a>
+        <div class="topbar-tools">
+          <span class="local-chip">
+            <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+            数据仅存本机
+          </span>
+          <button class="btn btn-ghost btn-sm" id="pointsBtn" type="button">
+            <svg class="ic" aria-hidden="true"><use href="#i-list"></use></svg>
+            积分导入
+          </button>
+          <a class="btn btn-ghost btn-sm" href="/">
+            <svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>
+            积分查询
+          </a>
+        </div>
+      </header>
+
+      <main class="studio">
+        <section class="col-main" aria-label="预览与导入">
+          <article class="card preview-card">
+            <header class="card-head">
+              <div class="card-title">
+                <span class="section-no">01</span>
+                <h1>车票预览</h1>
+                <span class="chip chip-demo" id="demoChip" hidden>示例数据</span>
+              </div>
+              <span class="muted" id="previewStatus" role="status" aria-live="polite">实时渲染</span>
+            </header>
+
+            <div class="preview-stage" id="previewStage">
+              <div class="ticket-shell">
+                <canvas id="ticketCanvas" width="809" height="509" aria-label="车票预览"></canvas>
+              </div>
+              <div class="trip-nav" id="tripNav">
+                <button class="icon-btn" id="prevTrip" type="button" aria-label="上一行程">
+                  <svg class="ic"><use href="#i-chev-l"></use></svg>
+                </button>
+                <span id="tripLabel">行程 1 / 1</span>
+                <button class="icon-btn" id="nextTrip" type="button" aria-label="下一行程">
+                  <svg class="ic"><use href="#i-chev-r"></use></svg>
+                </button>
+                <button class="btn btn-ghost btn-sm" id="addTrip" type="button">
+                  <svg class="ic"><use href="#i-plus"></use></svg>
+                  新行程
+                </button>
+              </div>
+            </div>
+
+            <div class="type-strip" id="typeStrip" role="listbox" aria-label="票面款式"></div>
+
+            <div class="font-panel">
+              <label class="slider-field">
+                <span>字号 <b id="fontScaleVal">100%</b></span>
+                <input id="fontScale" type="range" min="80" max="130" value="100" step="1" />
+              </label>
+              <label class="slider-field">
+                <span>粗细 <b id="fontWeightVal">500</b></span>
+                <input id="fontWeight" type="range" min="400" max="800" value="500" step="50" />
+              </label>
+              <div class="scheme-grid">
+                <label>中文<select id="schemeZh"></select></label>
+                <label>英文<select id="schemeEn"></select></label>
+                <label>数字<select id="schemeNum"></select></label>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button class="btn btn-ghost" id="resetBtn" type="button">
+                <svg class="ic"><use href="#i-trash"></use></svg>
+                清空
+              </button>
+              <button class="btn btn-secondary" id="backBtn" type="button">
+                <svg class="ic"><use href="#i-image"></use></svg>
+                制作背面
+              </button>
+              <button class="btn btn-secondary" id="batchBtn" type="button">
+                <svg class="ic"><use href="#i-save"></use></svg>
+                批量导出
+              </button>
+              <button class="btn btn-primary" id="exportBtn" type="button">
+                <svg class="ic"><use href="#i-download"></use></svg>
+                导出图片
+              </button>
+            </div>
+          </article>
+
+          <article class="card import-card" id="importCard">
+            <header class="card-head">
+              <div class="card-title">
+                <span class="section-no">02</span>
+                <h2>导入行程</h2>
+              </div>
+              <span class="muted">PDF 只在本地解析</span>
+            </header>
+            <div class="import-grid">
+              <button class="dropzone" id="pdfDrop" type="button">
+                <span class="drop-icon"><svg class="ic"><use href="#i-pdf"></use></svg></span>
+                <span class="drop-title">12306 行程信息提示 / 电子发票</span>
+                <span class="drop-hint">点击或拖入 PDF（可多选），自动回填；手动改过的字段不会被覆盖</span>
+              </button>
+              <div class="import-actions">
+                <button class="btn btn-secondary" id="pdfPick" type="button">
+                  <svg class="ic"><use href="#i-pdf"></use></svg>
+                  选择 PDF
+                </button>
+                <button class="btn btn-secondary" id="pointsImport" type="button">
+                  <svg class="ic"><use href="#i-list"></use></svg>
+                  积分记录
+                </button>
+                <button class="btn btn-ghost btn-sm" id="pdfDemo" type="button">查看示例数据</button>
+                <input id="pdfFile" type="file" accept="application/pdf,.pdf" multiple hidden />
+              </div>
+            </div>
+            <p class="import-note">
+              回填规则：自动回填 → 手动优先 → 非空优先。二维码缺失时回退到 12306 首页；不会使用 PDF 的生成时间当乘车日期。
+            </p>
+          </article>
+        </section>
+
+        <aside class="col-side" aria-label="表单">
+          <article class="card form-card">
+            <header class="card-head">
+              <div class="card-title">
+                <span class="section-no">03</span>
+                <h2>行程信息</h2>
+              </div>
+              <span class="muted">全文本可编辑</span>
+            </header>
+
+            <form id="ticketForm" class="ticket-form" autocomplete="off" novalidate>
+              <div class="form-row two">
+                <label class="field">
+                  <span>票号（顶部红字）</span>
+                  <input id="ticketNo" data-field="ticketNo" maxlength="24" placeholder="订单号 / 短票号" />
+                </label>
+                <label class="field">
+                  <span>检票口</span>
+                  <input id="checkinRoom" data-field="checkinRoom" maxlength="20" placeholder="12B" />
+                </label>
+              </div>
+
+              <div class="form-row two station-row">
+                <label class="field">
+                  <span>始发站</span>
+                  <span class="input-suffix">
+                    <input id="startStation" data-field="startStation" maxlength="12" placeholder="北京南" />
+                    <b>站</b>
+                  </span>
+                </label>
+                <label class="field">
+                  <span>拼音</span>
+                  <input id="startStationPY" data-field="startStationPY" maxlength="40" placeholder="Beijingnan" />
+                </label>
+              </div>
+
+              <div class="form-row two station-row">
+                <label class="field">
+                  <span>到达站</span>
+                  <span class="input-suffix">
+                    <input id="endStation" data-field="endStation" maxlength="12" placeholder="天津西" />
+                    <b>站</b>
+                  </span>
+                </label>
+                <label class="field">
+                  <span>拼音</span>
+                  <input id="endStationPY" data-field="endStationPY" maxlength="40" placeholder="Tianjinxi" />
+                </label>
+              </div>
+
+              <div class="form-row two">
+                <label class="field">
+                  <span>车次</span>
+                  <input id="trainNo" data-field="trainNo" maxlength="8" placeholder="G2884" list="trainHistory" />
+                  <datalist id="trainHistory"></datalist>
+                </label>
+                <label class="field">
+                  <span>席别</span>
+                  <input id="seatClass" data-field="seatClass" maxlength="12" placeholder="二等座" />
+                </label>
+              </div>
+
+              <div class="form-row two">
+                <label class="field">
+                  <span>乘车日期</span>
+                  <input id="date" data-field="date" type="date" />
+                </label>
+                <label class="field">
+                  <span>发车时间</span>
+                  <input id="time" data-field="time" type="time" />
+                </label>
+              </div>
+
+              <div class="form-row three">
+                <label class="field">
+                  <span>车厢</span>
+                  <input id="carriageNo" data-field="carriageNo" maxlength="2" inputmode="numeric" placeholder="02" />
+                </label>
+                <label class="field">
+                  <span>座位</span>
+                  <input id="seatNo" data-field="seatNo" maxlength="6" placeholder="11F" />
+                </label>
+                <label class="field">
+                  <span>铺位</span>
+                  <input id="seatPosition" data-field="seatPosition" maxlength="4" placeholder="上铺" />
+                </label>
+              </div>
+
+              <div class="form-row two">
+                <label class="field">
+                  <span>票价</span>
+                  <input id="price" data-field="price" inputmode="decimal" maxlength="12" placeholder="381.0" />
+                </label>
+                <label class="field">
+                  <span>证件号</span>
+                  <input id="identity" data-field="identity" maxlength="32" placeholder="110101********1234" />
+                </label>
+              </div>
+
+              <label class="field">
+                <span>姓名</span>
+                <input id="name" data-field="name" maxlength="24" placeholder="李某某" />
+              </label>
+
+              <div class="form-row two">
+                <label class="field">
+                  <span>附加信息 1</span>
+                  <select id="info1" data-field="info1">
+                    <option value="0">不显示</option>
+                    <option value="1">退票费</option>
+                    <option value="2" selected>限乘当日当次车</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>附加信息 2</span>
+                  <input id="info2" data-field="info2" maxlength="40" value="仅供纪念使用" />
+                </label>
+              </div>
+
+              <label class="field">
+                <span>底部提示</span>
+                <select id="info3" data-field="info3">
+                  <option value="0" selected>报销凭证 遗失不补</option>
+                  <option value="1">买票请到12306</option>
+                  <option value="2">节日祝福</option>
+                  <option value="9">建党百年</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>取票机编号 + 票号（底部黑字）</span>
+                <input id="machineId" data-field="machineId" maxlength="40" placeholder="北京南站 001" />
+              </label>
+
+              <label class="field">
+                <span>二维码内容</span>
+                <span class="input-action">
+                  <input id="qrcodeString" data-field="qrcodeString" maxlength="512" placeholder="https://www.12306.cn/" />
+                  <label class="switch" title="显示二维码">
+                    <input id="qrEnabled" type="checkbox" aria-label="显示二维码" checked />
+                    <span></span>
+                  </label>
+                </span>
+              </label>
+
+              <fieldset class="flag-field">
+                <legend>优惠 / 标志</legend>
+                <label><input id="isChild" type="checkbox" data-flag="child" /> 孩</label>
+                <label><input id="isStudent" type="checkbox" data-flag="student" /> 学</label>
+                <label><input id="isOnline" type="checkbox" data-flag="online" /> 网</label>
+                <label><input id="isDiscount" type="checkbox" data-flag="discount" /> 惠</label>
+              </fieldset>
+            </form>
+          </article>
+
+          <article class="card passenger-card">
+            <header class="card-head">
+              <div class="card-title">
+                <span class="section-no">04</span>
+                <h2>常用乘客</h2>
+              </div>
+              <span class="muted">仅存本机</span>
+            </header>
+            <div class="passenger-row">
+              <select id="passengerList" aria-label="常用乘客"></select>
+              <button class="btn btn-secondary btn-sm" id="passengerFill" type="button">填入</button>
+            </div>
+            <div class="passenger-actions">
+              <button class="btn btn-ghost btn-sm" id="passengerSave" type="button">
+                <svg class="ic"><use href="#i-plus"></use></svg>
+                保存当前
+              </button>
+              <button class="btn btn-ghost btn-sm" id="passengerDel" type="button">
+                <svg class="ic"><use href="#i-trash"></use></svg>
+                删除
+              </button>
+            </div>
+          </article>
+        </aside>
+      </main>
+      <footer class="studio-footer">
+        纪念车票仅供个人留念，不是铁路报销凭证；请勿用于报销、乘车、退票或任何违规用途。
+      </footer>
+    </div>
+
+    <nav class="mobile-nav" aria-label="工坊快捷导航">
+      <button type="button" data-target="previewStage">
+        <svg class="ic"><use href="#i-ticket"></use></svg><span>预览</span>
+      </button>
+      <button type="button" data-target="ticketForm">
+        <svg class="ic"><use href="#i-list"></use></svg><span>行程</span>
+      </button>
+      <button type="button" data-target="passengerList">
+        <svg class="ic"><use href="#i-user"></use></svg><span>乘客</span>
+      </button>
+      <button type="button" data-target="importCard">
+        <svg class="ic"><use href="#i-pdf"></use></svg><span>导入</span>
+      </button>
+      <button type="button" data-action="export">
+        <svg class="ic"><use href="#i-download"></use></svg><span>导出</span>
+      </button>
+    </nav>
+
+    <!-- 免责声明 -->
+    <div class="modal-mask" id="disclaimerModal" hidden>
+      <div class="modal-card disclaimer-card" role="alertdialog" aria-modal="true" aria-labelledby="disclaimerTitle">
+        <div class="modal-head">
+          <span class="warn-icon"><svg class="ic"><use href="#i-warn"></use></svg></span>
+          <h2 id="disclaimerTitle">免责声明</h2>
+        </div>
+        <div class="disclaimer-body">
+          <p>本项目仅用于怀旧留念 12306 纸质火车票和前端技术演示。生成图片仅为模拟效果图，不是真实的铁路报销凭证。</p>
+          <p>严禁用于伪造、报销、欺诈等任何违规场景；违规使用带来的一切法律后果由使用者自行承担。</p>
+          <p class="disclaimer-q">您是否同意以上内容？</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="disclaimerNo" type="button" disabled>否（3s 后可点击）</button>
+          <button class="btn btn-primary" id="disclaimerYes" type="button" disabled>是（3s 后可点击）</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导出前询问 -->
+    <div class="modal-mask" id="exportAskModal" hidden>
+      <div class="modal-card ask-card" role="dialog" aria-modal="true" aria-labelledby="askTitle">
+        <div class="modal-head">
+          <span class="head-icon"><svg class="ic"><use href="#i-image"></use></svg></span>
+          <h2 id="askTitle">是否制作车票背面？</h2>
+        </div>
+        <p class="modal-text">背面可以放报销凭证使用须知、纪念文案或自定义图片；也可以跳过，直接导出正面。</p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="askNo" type="button">否，直接导出</button>
+          <button class="btn btn-primary" id="askBack" type="button">是，制作背面</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 背面编辑器 -->
+    <div class="modal-mask" id="backModal" hidden>
+      <div class="modal-card back-card" role="dialog" aria-modal="true" aria-labelledby="backTitle">
+        <div class="modal-head">
+          <span class="head-icon"><svg class="ic"><use href="#i-image"></use></svg></span>
+          <h2 id="backTitle">车票背面</h2>
+          <button class="icon-btn modal-close" id="backClose" type="button" aria-label="关闭">
+            <svg class="ic"><use href="#i-close"></use></svg>
+          </button>
+        </div>
+        <div class="back-layout">
+          <div class="back-preview">
+            <canvas id="backCanvas" width="809" height="509"></canvas>
+            <div class="back-preview-hint">背面与正面同尺寸，导出时按当前倍率渲染</div>
+          </div>
+          <div class="back-controls">
+            <div class="form-row two">
+              <label class="field">
+                <span>底图</span>
+                <select id="backBg"></select>
+              </label>
+              <label class="field">
+                <span>纯色</span>
+                <input id="backSolidColor" type="color" value="#d9d9d9" />
+              </label>
+            </div>
+            <div class="form-row two">
+              <label class="field">
+                <span>自定义图片</span>
+                <input id="backImageFile" type="file" accept="image/*" />
+              </label>
+              <label class="field checkbox-field">
+                <span>遮罩</span>
+                <span class="inline-check">
+                  <input id="backMaskOn" type="checkbox" />
+                  <select id="backMaskColor">
+                    <option value="black">黑</option>
+                    <option value="white">白</option>
+                  </select>
+                  <input id="backMaskAlpha" type="range" min="0" max="100" value="50" />
+                </span>
+              </label>
+            </div>
+            <label class="field">
+              <span>标题</span>
+              <input id="backTitleInput" maxlength="60" value="报销凭证使用须知" />
+            </label>
+            <div class="form-row three">
+              <label class="field">
+                <span>标题字号</span>
+                <input id="backTitleSize" type="number" min="10" max="80" value="40" />
+              </label>
+              <label class="field">
+                <span>标题粗细</span>
+                <select id="backTitleWeight">
+                  <option value="400">400</option>
+                  <option value="500">500</option>
+                  <option value="600">600</option>
+                  <option value="700" selected>700</option>
+                  <option value="800">800</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>标题颜色</span>
+                <input id="backTitleColor" type="color" value="#333333" />
+              </label>
+            </div>
+            <label class="field">
+              <span>条款</span>
+              <textarea id="backTerms" rows="7"></textarea>
+            </label>
+            <div class="form-row three">
+              <label class="field">
+                <span>条款字号</span>
+                <input id="backTermsSize" type="number" min="10" max="60" value="21" />
+              </label>
+              <label class="field">
+                <span>条款粗细</span>
+                <select id="backTermsWeight">
+                  <option value="400">400</option>
+                  <option value="500" selected>500</option>
+                  <option value="600">600</option>
+                  <option value="700">700</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>条款颜色</span>
+                <input id="backTermsColor" type="color" value="#3c3c3c" />
+              </label>
+            </div>
+            <div class="form-row two">
+              <label class="field">
+                <span>导出方式</span>
+                <select id="backExportMode">
+                  <option value="merge">正反面合并为一张</option>
+                  <option value="split">分开导出正面 / 背面</option>
+                </select>
+              </label>
+              <label class="field checkbox-field">
+                <span>应用到全部行程</span>
+                <span class="inline-check"><input id="backApplyAll" type="checkbox" /></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="backCancel" type="button">取消</button>
+          <button class="btn btn-primary" id="backExport" type="button">
+            <svg class="ic"><use href="#i-download"></use></svg>
+            导出图片
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 进度 -->
+    <div class="modal-mask" id="progressModal" hidden>
+      <div class="modal-card progress-card" role="dialog" aria-modal="true" aria-labelledby="progressTitle">
+        <div class="modal-head">
+          <span class="head-icon"><svg class="ic"><use href="#i-download"></use></svg></span>
+          <h2 id="progressTitle">正在导出</h2>
+        </div>
+        <div class="progress-track"><span id="progressBar"></span></div>
+        <p class="modal-text" id="progressText">准备中…</p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="progressCancel" type="button">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 积分导入 -->
+    <div class="modal-mask" id="pointsModal" hidden>
+      <div class="modal-card points-card" role="dialog" aria-modal="true" aria-labelledby="pointsTitle">
+        <div class="modal-head">
+          <span class="head-icon"><svg class="ic"><use href="#i-list"></use></svg></span>
+          <h2 id="pointsTitle">从积分记录导入</h2>
+          <button class="icon-btn modal-close" id="pointsClose" type="button" aria-label="关闭">
+            <svg class="ic"><use href="#i-close"></use></svg>
+          </button>
+        </div>
+        <div class="form-row three">
+          <label class="field"><span>开始日期</span><input id="pointsStart" type="date" /></label>
+          <label class="field"><span>结束日期</span><input id="pointsEnd" type="date" /></label>
+          <label class="field"><span>&nbsp;</span><button class="btn btn-secondary" id="pointsLoad" type="button">读取记录</button></label>
+        </div>
+        <p class="modal-text" id="pointsStatus">登录 12306 后读取当前区间的乘车记录；不含发车时间/座位号/票价。</p>
+        <div class="points-list" id="pointsList"></div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="pointsCancel" type="button">取消</button>
+          <button class="btn btn-primary" id="pointsApply" type="button" disabled>导入选中</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF 解析预览 -->
+    <div class="modal-mask" id="pdfModal" hidden>
+      <div class="modal-card pdf-card" role="dialog" aria-modal="true" aria-labelledby="pdfTitle">
+        <div class="modal-head">
+          <span class="head-icon"><svg class="ic"><use href="#i-pdf"></use></svg></span>
+          <h2 id="pdfTitle">PDF 解析结果</h2>
+          <button class="icon-btn modal-close" id="pdfClose" type="button" aria-label="关闭">
+            <svg class="ic"><use href="#i-close"></use></svg>
+          </button>
+        </div>
+        <p class="modal-text" id="pdfSummary"></p>
+        <div class="pdf-fields" id="pdfFields"></div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="pdfCancel" type="button">取消</button>
+          <button class="btn btn-secondary" id="pdfNewTrip" type="button">新建行程</button>
+          <button class="btn btn-primary" id="pdfApply" type="button">应用到当前行程</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 通用确认 -->
+    <div class="modal-mask" id="confirmModal" hidden>
+      <div class="modal-card confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="modal-head">
+          <span class="head-icon"><svg class="ic"><use href="#i-warn"></use></svg></span>
+          <h2 id="confirmTitle">确认</h2>
+        </div>
+        <p class="modal-text" id="confirmText"></p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="confirmNo" type="button">取消</button>
+          <button class="btn btn-primary" id="confirmYes" type="button">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+    <script type="module" src="/js/ticket/app.js"></script>
+  </body>
+</html>

@@ -131,29 +131,34 @@ maxW = zoneRight - nameX
 
 ## 4. 字体
 
-### 4.1 字体栈
+### 4.1 字体栈（以参考图为准）
+
+TraceDot V6.2.6 的“系统默认”会把绘制层的 `Times New Roman` / `Arial` **替换为系统无衬线栈**；参考图里的数字、英文、中文都是系统无衬线。因此本项目默认也使用系统栈：
 
 ```css
-/* UI */
+/* UI（Nunito Sans 可选自托管，不联网加载） */
 font-family: "Nunito Sans", "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC",
              "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
 
-/* 票面 Latin/数字 */
-"Times New Roman", "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC",
-"Microsoft YaHei", serif;
-
-/* 票号 */
-Arial, "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+/* 票面默认：系统无衬线，中文 + 数字 + 英文同一栈 */
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+             "HarmonyOS Sans SC", "Noto Sans SC", "Microsoft YaHei",
+             "Helvetica Neue", Arial, sans-serif;
 ```
+
+“经典衬线”只在用户显式选择字体方案时启用：
+
+- 英文/数字方案选 `Times New Roman` → 英文/数字用衬线，中文仍回退到系统中文；
+- 票号方案选 `Arial` → 票号用 Arial；
+- 默认 `fontScheme = {zh:'',en:'',num:''}`，全部走系统栈。
 
 ### 4.2 混排要求
 
-- 浏览器 Canvas 设置完整字体栈即可自动逐字回退；
-- Pillow 不会自动回退，必须实现 `draw_text_mixed()`：
-  - ASCII 字母/数字/`￥`/`.`/`-`/`/` → Times New Roman（票号用 Arial）；
-  - 中文、中文标点、`☆`、`站/年/月/日/车/号/元/开` → 系统中文字体；
-  - 逐段测量、逐段绘制，段间不额外加空格；
-  - 字距 `tracking` 只加在字符之间，不加在行尾。
+- 浏览器 Canvas 设置完整字体栈即可自动逐字回退；默认无需手工拆分中英文。
+- Pillow 不会自动回退，分两种情况：
+  - 默认：使用系统中文无衬线字体（PingFang SC / STHeiti / Noto Sans CJK / 微软雅黑），它同时含 Latin/数字，直接绘制；
+  - 用户显式选 Times/Arial 时：实现 `draw_text_mixed()`，ASCII 字母/数字/`￥`/`.`/`-`/`/` 用所选 Latin 字体，中文/中文标点/`☆`/`站/年/月/日/车/号/元/开` 用系统中文；逐段测量、逐段绘制。
+- 字距 `tracking` 只加在字符之间，不加在行尾。
 - 中文优先 `PingFang SC`（macOS）→ `HarmonyOS Sans SC`（华为）→ `Noto Sans SC`（Linux/安卓）→ `Microsoft YaHei`（Windows）。
 - 仓库不包含上述商业字体；Python 缺字体时必须报错并提示 `--font-cjk`。
 

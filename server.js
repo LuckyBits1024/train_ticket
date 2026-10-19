@@ -12,6 +12,7 @@ import { buildCsv, buildJson, collectRecords, flattenRecords } from './src/expor
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(ROOT, 'public');
+const ASSETS_DIR = path.join(ROOT, 'assets');
 const DATA_DIR = path.join(ROOT, 'data');
 const EXPORT_DIR = path.join(DATA_DIR, 'exports');
 const SESSION_FILE = path.join(DATA_DIR, 'session.json');
@@ -27,8 +28,18 @@ const MIME = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
   '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.wasm': 'application/wasm',
+  '.map': 'application/json; charset=utf-8',
+  '.bcmap': 'application/octet-stream',
+  '.pfb': 'application/octet-stream',
   '.txt': 'text/plain; charset=utf-8',
 };
 
@@ -93,6 +104,94 @@ function sendJson(res, status, payload) {
 
 function fail(res, status, code, message, extra = {}) {
   sendJson(res, status, { error: { code, message, ...extra } });
+}
+
+function sendJsonCached(res, status, payload, maxAge = 86400) {
+  const body = JSON.stringify(payload);
+  res.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': `public, max-age=${maxAge}`,
+    'content-length': Buffer.byteLength(body),
+  });
+  res.end(body);
+}
+
+let stationCache = null;
+async function loadStationData() {
+  if (stationCache) return stationCache;
+  const [list, pinyin] = await Promise.all([
+    readFile(path.join(ROOT, 'src', 'data', 'stations-index.json'), 'utf8').then(JSON.parse),
+    readFile(path.join(ROOT, 'src', 'data', 'stations-pinyin.json'), 'utf8').then(JSON.parse),
+  ]);
+  stationCache = { list, pinyin };
+  return stationCache;
+}
+
+function textValue(value) {
+  return value === null || value === undefined ? '' : String(value).trim();
+}
+
+function firstValue(source, keys) {
+  for (const key of keys) {
+    const value = textValue(source?.[key]);
+    if (value) return value;
+  }
+  return '';
+}
+
+function compactDate(value) {
+  const text = textValue(value);
+  const compact = /^(\d{4})(\d{2})(\d{2})$/.exec(text);
+  if (compact) return `${compact[1]}-${compact[2]}-${compact[3]}`;
+  const dashed = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+  return dashed ? `${dashed[1]}-${dashed[2]}-${dashed[3]}` : '';
+}
+
+function draftFromDetail(record, index, pinyins) {
+  const detail = record.detail || {};
+  const raw = detail.raw && typeof detail.raw === 'object' ? detail.raw : {};
+  const from = textValue(detail.from) || firstValue(raw, ['board_station_name', 'resign_board_station_name']);
+  const to = textValue(detail.to) || firstValue(raw, ['arrive_station_name', 'resign_arrive_station_name']);
+  const trainNo = textValue(detail.trainCode).replace(/次$/, '');
+  const date = compactDate(detail.travelDate || firstValue(raw, ['train_date', 'resign_train_date']));
+  const time = firstValue(raw, ['start_time', 'train_start_time', 'depart_time', 'departure_time']);
+  const price = firstValue(raw, ['ticket_price', 'sale_price', 'ticketPrice', 'salePrice']);
+  const seatNo = firstValue(raw, ['seat_no', 'seat_number', 'seatNo', 'seatNumber']);
+  const passenger = textValue(detail.passenger) || firstValue(raw, ['v_assignee_id_name', 'passenger_name']);
+  return {
+    id: `${record.trade?.id || 'record'}-${index + 1}`,
+    style: index % 8 === 5 ? 'red' : 'blue',
+    ticketNo: '',
+    checkinRoom: '',
+    startStation: from.replace(/站$/, ''),
+    startStationPY: pinyins[from.replace(/站$/, '')] || '',
+    endStation: to.replace(/站$/, ''),
+    endStationPY: pinyins[to.replace(/站$/, '')] || '',
+    trainNo,
+    seatClass: textValue(detail.seat),
+    date,
+    time: /^\d{1,2}:\d{2}$/.test(time) ? time.padStart(5, '0') : '',
+    carriageNo: textValue(detail.coach).replace(/车$/, ''),
+    seatNo,
+    seatPosition: '',
+    price: /^\d+(?:\.\d{1,2})?$/.test(price) ? price : '',
+    identity: '',
+    name: passenger,
+    info1: '0',
+    info2: '仅供纪念使用',
+    info3: '0',
+    machineId: '',
+    qrcodeString: 'https://www.12306.cn/',
+    qrEnabled: true,
+    flags: { child: false, student: false, online: false, discount: false },
+    fontScale: 1,
+    fontWeight: 500,
+    fontScheme: { zh: '', en: '', num: '' },
+    back: null,
+    source: 'points',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 async function readJsonBody(req, limit = 1024 * 1024) {
@@ -315,6 +414,36 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { details });
   }
 
+  if (pathname === '/api/ticket/stations' && req.method === 'GET') {
+    const { list } = await loadStationData();
+    return sendJsonCached(res, 200, { updatedAt: new Date().toISOString().slice(0, 10), stations: list }, 86400);
+  }
+
+  if (pathname === '/api/ticket/records' && req.method === 'GET') {
+    const user = await rail.checkLogin();
+    if (!user) throw new ApiError('登录已失效，请重新扫码登录', { code: 'NO_LOGIN' });
+    const { start, end } = resolveRange(url);
+    const limit = Math.min(120, Math.max(1, Number(searchParams.get('limit')) || 60));
+    const { records } = await collectRecords({
+      client: rail,
+      start,
+      end,
+      includeDetails: true,
+    });
+    const { pinyin } = await loadStationData();
+    const flat = flattenRecords(records)
+      .filter((record) => record.detail && record.detail.kind !== '商户消费')
+      .slice(0, limit);
+    const drafts = flat.map((record, index) => draftFromDetail(record, index, pinyin));
+    return sendJson(res, 200, {
+      range: { start, end },
+      records: drafts,
+      warnings: drafts.length
+        ? ['积分明细不含发车时间、座位号与票价；票面对应字段会留空，可在工坊中补全。']
+        : ['所选区间没有可生成车票的乘车记录。'],
+    });
+  }
+
   if (pathname === '/api/login/qr' && req.method === 'POST') {
     const qr = await rail.createQrCode();
     qrSession = {
@@ -470,6 +599,36 @@ async function handleApi(req, res, url) {
   return fail(res, 404, 'NOT_FOUND', '接口不存在');
 }
 
+async function serveAssets(req, res, url) {
+  let pathname;
+  try {
+    pathname = decodeURIComponent(url.pathname.slice('/assets/'.length));
+  } catch {
+    return fail(res, 400, 'BAD_REQUEST', '非法路径');
+  }
+  if (!pathname || pathname.startsWith('.') || pathname.includes('\0')) {
+    return fail(res, 403, 'FORBIDDEN', '禁止访问');
+  }
+  const filePath = path.resolve(ASSETS_DIR, pathname);
+  if (!filePath.startsWith(`${ASSETS_DIR}${path.sep}`)) {
+    return fail(res, 403, 'FORBIDDEN', '禁止访问');
+  }
+  try {
+    const content = await readFile(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    res.writeHead(200, {
+      'content-type': MIME[ext] || 'application/octet-stream',
+      'cache-control': 'public, max-age=86400',
+      'content-length': content.length,
+    });
+    if (req.method === 'HEAD') return res.end();
+    return res.end(content);
+  } catch (error) {
+    if (error.code === 'ENOENT') return fail(res, 404, 'NOT_FOUND', '资源不存在');
+    throw error;
+  }
+}
+
 async function serveStatic(req, res, url) {
   let pathname = decodeURIComponent(url.pathname);
   if (pathname === '/') pathname = '/index.html';
@@ -532,6 +691,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return fail(res, 405, 'METHOD_NOT_ALLOWED', '不支持的请求方法');
+    }
+    if (url.pathname.startsWith('/assets/')) {
+      return await serveAssets(req, res, url);
     }
     return await serveStatic(req, res, url);
   } catch (error) {

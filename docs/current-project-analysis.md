@@ -13,7 +13,7 @@ train_ticket/
 │   ├── export.js             # 积分 CSV/JSON 导出
 │   ├── ticket_image.py       # Pillow 票面渲染器（2 款式）
 │   ├── points_ticket.py      # 积分明细 → 票面字段
-│   └── data/                 # 3404 个车站、拼音、席别
+│   └── data/                 # 3404 个车站、拼音、首字母、席别
 ├── public/                   # 积分查询页（原生 HTML/CSS/JS，无构建）
 ├── scripts/                  # CLI 入口与冒烟测试
 ├── assets/ticket-template/   # 旧版 2 款票底（1070×730）
@@ -63,6 +63,7 @@ npm run ticket -- --data examples/ticket.json --style both
 
 - `src/data/stations.json`：3404 条，`电报码 → 站名`；
 - `src/data/stations-pinyin.json`：3404 条，`站名 → 全拼`；
+- `src/data/stations-index.json`：3404 条，`{name,pinyin,short,code}`，供 `/api/ticket/stations` 与前端联想；
 - `src/data/seats.json`：席别代码 → 名称；
 - 没有站名简称/首字母索引，没有“站名 + 拼音 + 电报码”的统一结构。
 
@@ -164,3 +165,17 @@ assets/design/                 # 令牌、图标、截图（已交付）
 - PDF 导入通过 [pdf-import-spec.md](pdf-import-spec.md) 的 10 个样例；
 - 手机 390×844 无横向滚动，触控目标 ≥44px；
 - 断网后除“检查更新/OCR”外全部可用。
+
+## 8. 本分支实现状态（Web）
+
+已在同一分支落地 M1–M4：
+
+- `public/ticket.html`、`public/ticket.css`；
+- `public/js/ticket/`：`app / templates / layout / renderer / validate / stations / store / fill / pdf / export`；
+- `public/js/vendor/`：pdf.js 3.11 legacy + cmaps + standard fonts、qrcode 1.5.1；
+- `server.js`：`/assets/*` 只读路由、`/api/ticket/stations`、`/api/ticket/records`；
+- `src/data/stations-index.json`：3404 条站名/全拼/首字母/电报码；
+- `tests/ticket/*.test.mjs`：`npm run test:web`，23 个用例；
+- `scripts/test-ticket.py`：16 个用例，覆盖八款尺寸、背面合并、CLI `all/both/pink`。
+
+Python CLI 的八款 parity（M5）已在 `src/ticket/` 内完成：`--style all`、`--scale`、`--back`、`--back-split`，旧的 `blue/pink/both` 命令保持兼容。
