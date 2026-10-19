@@ -1,0 +1,16 @@
+{
+  "name": "train-ticket-points",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "本地版 12306 会员积分查询/导出工具，支持扫码登录并保持登录态",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "build:stations": "node scripts/build-stations.mjs",
+    "test": "node scripts/smoke-test.mjs"
+  }
+}
