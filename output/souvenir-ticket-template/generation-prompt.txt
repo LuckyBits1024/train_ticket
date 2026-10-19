@@ -1,0 +1,29 @@
+Use case: productivity-visual.
+Asset type: one reusable Chinese railway souvenir ticket template reference sheet with two coordinated style options.
+Input images: Image 1 is the blue vintage Chinese rail paper-ticket layout reference. Image 2 is the pink vintage Chinese rail paper-ticket layout reference. Both are style/layout references only, not image content to copy verbatim.
+Create one extremely clean high-resolution portrait PNG reference sheet containing exactly TWO large horizontal ticket templates stacked vertically, top blue, bottom pink. White background, minimal uniform margins and a clean narrow white gap. Each ticket keeps the reference aspect ratio about 1.59:1. Flat perfectly front-facing digital print artwork, no perspective, no photographed desk, no shadows, no curled paper. Maximize the ticket areas. High-resolution crisp legible Chinese typography. The two tickets must have precisely the same field geometry and typographic hierarchy.
+Faithfully abstract the vintage layout: ticket number red upper left, small red commemorative title at top center, gate upper right; giant black Chinese departure station at left and arrival station at right, Latin romanization immediately below; black train number centered between them with a thin right-pointing arrow under it; date and time on next line left, carriage-seat right; fare below left and travel class right; small 网 near center; validity line left; passenger identity in lower left; dashed outline message rectangle below passenger; large empty square in lower right where QR code would be; serial and issuing station along bottom. Use period printed railway-ticket Chinese typography, bold Song/Heiti mix, condensed black numerals, no rounded app-like sans-serif.
+Top blue: pale cyan-blue rounded rectangular ticket with subtle paper texture, restrained soft pale-blue flowing wave shapes, very faint streamlined train silhouette toward lower center-right, slightly deeper turquoise bottom strip, red number. Maintain the nostalgic appearance of image 1.
+Bottom pink: cream/off-white rectangular paper border around a pink-salmon printed area, fine delicate decorative red guilloche-style wavy lines reminiscent of image 2, but keep them very faint so the fields remain readable. No actual security encoding. Same text position and sizes as blue.
+Use these placeholder texts in BOTH tickets, exactly:
+Upper-left red number: "A000000"
+Top-center small red text: "纪念"
+Upper-right: "检票口00"
+Large station left: "出发站"
+Latin below left: "Departure"
+Large train centered: "G0000"
+Large station right: "到达站"
+Latin below right: "Arrival"
+Date/time left: "YYYY年MM月DD日 HH:mm开" (slightly condensed to fit neatly in the left 62 percent)
+Carriage/seat right: "00车00A号"
+Fare left: "¥000.0元"
+Center tiny: "网"
+Class right: "二等座"
+Validity line left: "限乘当日当次车"
+Passenger line: "******************  姓名"
+Dashed message box two centered lines: "买票请到12306  发货请到95306" and "中国铁路祝您旅途愉快"
+Bottom serial left: "00000000000000000000"
+Bottom issuing station center: "出票车站"
+Very bottom small but legible centered note on each ticket: "纪念车票 · 不作乘车凭证"
+QR area: a completely blank light square with a very thin dashed outline. DO NOT generate a QR pattern, barcode, black QR finder corners, or any scannable code. No words inside the square.
+Preserve generous clean alignment and enough room for all fields. No fields collide. Replace ALL specific identifying source text with the placeholders above. Do not reproduce the sample passenger's identity number, dates, passenger name, route or authentic serials. This is a reusable template for personal travel memories. Only render the two ticket templates, no extra titles, legends, annotations, page numbers or explanatory copy outside them.

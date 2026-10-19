@@ -11,6 +11,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "build:stations": "node scripts/build-stations.mjs",
-    "test": "node scripts/smoke-test.mjs"
+    "test": "node scripts/smoke-test.mjs",
+    "ticket": "node scripts/generate-ticket.mjs",
+    "test:ticket": "node scripts/generate-ticket.mjs --test"
   }
 }
