@@ -31,9 +31,16 @@
             <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
             数据仅存本机
           </span>
-          <button class="btn btn-ghost btn-sm" id="pointsBtn" type="button">
+          <button class="account-btn" id="accountBtn" type="button" aria-label="登录或查看 12306 账户">
+            <span class="account-avatar" id="accountAvatar">登</span>
+            <span class="account-copy">
+              <b id="accountName">扫码登录</b>
+              <small id="accountMeta">同步 12306 历史行程</small>
+            </span>
+          </button>
+          <button class="btn btn-ghost btn-sm" id="historyBtn" type="button">
             <svg class="ic" aria-hidden="true"><use href="#i-list"></use></svg>
-            积分导入
+            历史车票
           </button>
           <a class="btn btn-ghost btn-sm" href="/">
             <svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg>
@@ -131,8 +138,8 @@
                   选择 PDF
                 </button>
                 <button class="btn btn-secondary" id="pointsImport" type="button">
-                  <svg class="ic"><use href="#i-list"></use></svg>
-                  积分记录
+                  <svg class="ic"><use href="#i-user"></use></svg>
+                  从 12306 导入
                 </button>
                 <button class="btn btn-ghost btn-sm" id="pdfDemo" type="button">查看示例数据</button>
                 <input id="pdfFile" type="file" accept="application/pdf,.pdf" multiple hidden />
@@ -511,26 +518,130 @@
       </div>
     </div>
 
-    <!-- 积分导入 -->
+    <!-- 我的 12306：登录 / 会员信息 / 积分导出 -->
+    <div class="modal-mask" id="accountModal" hidden>
+      <div class="modal-card account-card" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+        <div class="modal-head">
+          <span class="head-icon"><svg class="ic"><use href="#i-user"></use></svg></span>
+          <h2 id="accountTitle">我的 12306</h2>
+          <button class="icon-btn modal-close" id="accountClose" type="button" aria-label="关闭">
+            <svg class="ic"><use href="#i-close"></use></svg>
+          </button>
+        </div>
+
+        <div id="accountGuest">
+          <div class="login-grid">
+            <div class="qr-box">
+              <img id="qrImage" alt="12306 登录二维码" />
+              <div class="qr-spinner" id="qrSpinner">正在生成二维码…</div>
+            </div>
+            <div class="login-copy">
+              <span class="eyebrow">SCAN TO SYNC</span>
+              <h3>用 12306 App 扫码登录</h3>
+              <p>登录后可以读取你账号里的历史乘车记录和积分，直接生成纪念车票；也可以导出积分 CSV / JSON。</p>
+              <p class="login-status" id="qrStatus" role="status" aria-live="polite">准备登录…</p>
+              <div class="login-actions">
+                <button class="btn btn-secondary btn-sm" id="qrRetry" type="button">
+                  <svg class="ic"><use href="#i-undo"></use></svg>
+                  重新获取
+                </button>
+                <a class="btn btn-ghost btn-sm" href="/">打开积分明细页</a>
+              </div>
+              <p class="login-note">Cookie 只保存在本机；不接触账号密码，不上传任何数据。</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="accountMember" hidden>
+          <div class="member-head">
+            <span class="member-avatar" id="memberAvatar">会</span>
+            <div class="member-id">
+              <strong id="memberName">12306 会员</strong>
+              <small id="memberPhone">已登录</small>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">退出登录</button>
+          </div>
+
+          <div class="member-stats">
+            <div><span>可用积分</span><b id="memberPoints">—</b></div>
+            <div><span>即将到期</span><b id="memberExpiring">—</b></div>
+            <div><span>会员等级</span><b id="memberLevel">—</b></div>
+          </div>
+
+          <div class="points-export">
+            <div class="points-export-head">
+              <div>
+                <span class="eyebrow">POINTS ARCHIVE</span>
+                <h3>导出我的积分</h3>
+              </div>
+              <span class="muted">含乘车明细</span>
+            </div>
+            <div class="form-row two">
+              <label class="field"><span>开始日期</span><input id="exportStart" type="date" /></label>
+              <label class="field"><span>结束日期</span><input id="exportEnd" type="date" /></label>
+            </div>
+            <div class="export-actions">
+              <button class="btn btn-secondary" id="exportCsvBtn" type="button">
+                <svg class="ic"><use href="#i-download"></use></svg>
+                导出 CSV
+              </button>
+              <button class="btn btn-secondary" id="exportJsonBtn" type="button">
+                <svg class="ic"><use href="#i-download"></use></svg>
+                导出 JSON
+              </button>
+              <button class="btn btn-primary" id="importHistoryBtn" type="button">
+                <svg class="ic"><use href="#i-ticket"></use></svg>
+                读取历史车票
+              </button>
+            </div>
+            <div class="export-progress" id="pointsExportProgress" hidden>
+              <div class="progress-track"><span id="pointsExportBar"></span></div>
+              <p class="muted" id="pointsExportText">准备导出…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 历史车票导入 -->
     <div class="modal-mask" id="pointsModal" hidden>
       <div class="modal-card points-card" role="dialog" aria-modal="true" aria-labelledby="pointsTitle">
         <div class="modal-head">
           <span class="head-icon"><svg class="ic"><use href="#i-list"></use></svg></span>
-          <h2 id="pointsTitle">从积分记录导入</h2>
+          <h2 id="pointsTitle">历史车票</h2>
           <button class="icon-btn modal-close" id="pointsClose" type="button" aria-label="关闭">
             <svg class="ic"><use href="#i-close"></use></svg>
           </button>
         </div>
+
+        <div class="history-account">
+          <span class="history-account-label" id="historyAccount">未登录</span>
+          <button class="btn btn-secondary btn-sm" id="pointsLogin" type="button">
+            <svg class="ic"><use href="#i-user"></use></svg>
+            扫码登录
+          </button>
+        </div>
+
         <div class="form-row three">
           <label class="field"><span>开始日期</span><input id="pointsStart" type="date" /></label>
           <label class="field"><span>结束日期</span><input id="pointsEnd" type="date" /></label>
-          <label class="field"><span>&nbsp;</span><button class="btn btn-secondary" id="pointsLoad" type="button">读取记录</button></label>
+          <label class="field"><span>&nbsp;</span><button class="btn btn-secondary" id="pointsLoad" type="button">读取历史行程</button></label>
         </div>
-        <p class="modal-text" id="pointsStatus">登录 12306 后读取当前区间的乘车记录；不含发车时间/座位号/票价。</p>
+        <p class="modal-text" id="pointsStatus">登录 12306 后，读取当前区间内的历史乘车记录；积分明细不含发车时间/座位号/票价，可导入后补全。</p>
+
+        <div class="history-toolbar">
+          <label class="select-all"><input id="pointsSelectAll" type="checkbox" checked /> 全选</label>
+          <span class="muted" id="pointsCount">未读取</span>
+        </div>
         <div class="points-list" id="pointsList"></div>
+
         <div class="modal-actions">
           <button class="btn btn-secondary" id="pointsCancel" type="button">取消</button>
-          <button class="btn btn-primary" id="pointsApply" type="button" disabled>导入选中</button>
+          <button class="btn btn-secondary" id="pointsApply" type="button" disabled>导入选中</button>
+          <button class="btn btn-primary" id="pointsApplyExport" type="button" disabled>
+            <svg class="ic"><use href="#i-download"></use></svg>
+            导入并批量导出
+          </button>
         </div>
       </div>
     </div>

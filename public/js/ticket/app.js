@@ -71,6 +71,11 @@ const state = {
   backStyle: null,
   pendingPdf: null,
   pointsRecords: [],
+  account: { loggedIn: false, user: null, summary: null, known: false },
+  qr: { uuid: null, timer: null, busy: false, generation: 0, failures: 0 },
+  afterLogin: null,
+  pointsExportTimer: null,
+  pointsExportBusy: false,
   progressCancel: null,
   confirmResolve: null,
   exporting: false,
@@ -125,6 +130,38 @@ function debounce(fn, delay) {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), delay);
   };
+}
+
+async function api(path, { method = 'GET', body, timeout = 30000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(path, {
+      method,
+      headers: body ? { 'content-type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+      credentials: 'same-origin',
+    });
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+    if (!response.ok) {
+      const error = new Error(data?.error?.message || `请求失败（HTTP ${response.status}）`);
+      error.code = data?.error?.code || 'HTTP_ERROR';
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    if (error.name === 'AbortError') throw new Error('请求超时，请稍后重试');
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function loadIconSprite() {
@@ -813,43 +850,302 @@ function formatDateInput(date) {
   return `${year}-${month}-${day}`;
 }
 
-function openPoints() {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 365);
-  if (!$('#pointsStart').value) $('#pointsStart').value = formatDateInput(start);
-  if (!$('#pointsEnd').value) $('#pointsEnd').value = formatDateInput(end);
-  $('#pointsModal').hidden = false;
+function ensureDateRange(startSelector, endSelector) {
+  const start = $(startSelector);
+  const end = $(endSelector);
+  if (!start || !end) return { start: '', end: '' };
+  if (!start.value || !end.value) {
+    const now = new Date();
+    const before = new Date();
+    before.setDate(before.getDate() - 365);
+    if (!start.value) start.value = formatDateInput(before);
+    if (!end.value) end.value = formatDateInput(now);
+  }
+  return { start: start.value, end: end.value };
+}
+
+function updateAccountUI() {
+  const loggedIn = Boolean(state.account.loggedIn);
+  const user = state.account.user || {};
+  const summary = state.account.summary || {};
+  const name = user.name || user.userName || '12306 会员';
+  const initial = name.slice(0, 1) || '登';
+  const points = Number(summary.availablePoints) || 0;
+
+  $('#accountName').textContent = loggedIn ? name : '扫码登录';
+  $('#accountMeta').textContent = loggedIn
+    ? (points ? `${points.toLocaleString('zh-CN')} 积分` : (user.mobile || '已登录'))
+    : '同步 12306 历史行程';
+  $('#accountAvatar').textContent = loggedIn ? initial : '登';
+  $('#accountBtn').classList.toggle('is-logged-in', loggedIn);
+
+  $('#memberName').textContent = name;
+  $('#memberPhone').textContent = user.mobile ? `+86 ${user.mobile}` : '已登录 12306';
+  $('#memberAvatar').textContent = initial;
+  $('#memberPoints').textContent = summary.availablePoints !== undefined
+    ? Number(summary.availablePoints).toLocaleString('zh-CN')
+    : '—';
+  $('#memberExpiring').textContent = summary.expiringPoints !== undefined
+    ? Number(summary.expiringPoints).toLocaleString('zh-CN')
+    : '—';
+  const level = Number(summary.memberLevel ?? user.memberLevel) || 0;
+  $('#memberLevel').textContent = level ? `${level} 星` : '—';
+
+  $('#historyAccount').textContent = loggedIn ? `已登录 · ${name}` : '未登录';
+  $('#pointsLogin').hidden = loggedIn;
+  $('#pointsLoad').disabled = !loggedIn;
+  if (!loggedIn) {
+    $('#pointsApply').disabled = true;
+    $('#pointsApplyExport').disabled = true;
+    $('#pointsCount').textContent = '未读取';
+  }
+}
+
+function showAccountView(view) {
+  $('#accountGuest').hidden = view !== 'guest';
+  $('#accountMember').hidden = view !== 'member';
+}
+
+function stopQrPolling() {
+  if (state.qr.timer) {
+    clearInterval(state.qr.timer);
+    state.qr.timer = null;
+  }
+  state.qr.busy = false;
+}
+
+async function refreshAccount({ silent = true } = {}) {
+  try {
+    const data = await api('/api/state', { timeout: 20000 });
+    state.account.loggedIn = Boolean(data.loggedIn);
+    state.account.user = data.user || null;
+    state.account.known = true;
+    if (!state.account.loggedIn) state.account.summary = null;
+    updateAccountUI();
+    return state.account.loggedIn;
+  } catch (error) {
+    if (!silent) toast(error.message || '读取登录状态失败', 'error');
+    return false;
+  }
+}
+
+async function loadAccountSummary() {
+  if (!state.account.loggedIn) return;
+  try {
+    const data = await api('/api/summary', { timeout: 30000 });
+    if (data.summary) state.account.summary = data.summary;
+    if (data.user) state.account.user = data.user;
+    updateAccountUI();
+  } catch (error) {
+    if (error.code === 'NO_LOGIN') {
+      state.account.loggedIn = false;
+      state.account.user = null;
+      state.account.summary = null;
+      updateAccountUI();
+      return;
+    }
+    if (error.message) toast(error.message, 'error');
+  }
+}
+
+async function createQr() {
+  stopQrPolling();
+  const generation = ++state.qr.generation;
+  state.qr.uuid = null;
+  state.qr.failures = 0;
+  $('#accountTitle').textContent = '我的 12306';
+  showAccountView('guest');
+  $('#qrImage').removeAttribute('src');
+  $('#qrSpinner').hidden = false;
+  $('#qrSpinner').textContent = '正在生成二维码…';
+  $('#qrStatus').textContent = '正在向 12306 获取登录二维码…';
+  try {
+    const data = await api('/api/login/qr', { method: 'POST', timeout: 30000 });
+    if (generation !== state.qr.generation || $('#accountModal').hidden) return;
+    state.qr.uuid = data.uuid;
+    const image = new Image();
+    image.onload = () => {
+      if (generation !== state.qr.generation) return;
+      $('#qrImage').src = data.image;
+      $('#qrSpinner').hidden = true;
+      $('#qrStatus').textContent = '等待扫码，请使用铁路 12306 App';
+    };
+    image.onerror = () => {
+      $('#qrSpinner').textContent = '二维码图片加载失败，请重新获取';
+      $('#qrStatus').textContent = '二维码加载失败';
+    };
+    image.src = data.image;
+    state.qr.timer = setInterval(() => pollQr(generation), 1500);
+  } catch (error) {
+    if (generation !== state.qr.generation) return;
+    $('#qrSpinner').textContent = error.message || '二维码生成失败';
+    $('#qrStatus').textContent = '暂时无法连接 12306，请稍后重试';
+  }
+}
+
+async function pollQr(generation) {
+  if (generation !== state.qr.generation || !state.qr.uuid || state.qr.busy) return;
+  if ($('#accountModal').hidden) {
+    stopQrPolling();
+    return;
+  }
+  state.qr.busy = true;
+  try {
+    const data = await api(`/api/login/qr/${encodeURIComponent(state.qr.uuid)}`, { timeout: 40000 });
+    if (generation !== state.qr.generation) return;
+    state.qr.failures = 0;
+    if (data.state === 'confirmed') {
+      stopQrPolling();
+      $('#qrStatus').textContent = '登录成功，正在读取账户…';
+      state.account.loggedIn = true;
+      state.account.user = data.user || state.account.user;
+      updateAccountUI();
+      await refreshAccount();
+      await loadAccountSummary();
+      showAccountView('member');
+      toast('已登录 12306', 'success');
+      if (state.afterLogin === 'history') {
+        state.afterLogin = null;
+        closeAccount();
+        await openHistory();
+      }
+      return;
+    }
+    if (data.state === 'expired' || data.state === 'error') {
+      stopQrPolling();
+      $('#qrSpinner').hidden = false;
+      $('#qrSpinner').textContent = data.message || '二维码已失效，请重新获取';
+      $('#qrStatus').textContent = data.state === 'expired' ? '二维码已失效' : '登录失败';
+      return;
+    }
+    if (data.state === 'scanned') {
+      $('#qrStatus').textContent = data.message || '已扫码，请在手机上确认登录';
+      return;
+    }
+    if (data.state === 'confirming') {
+      $('#qrStatus').textContent = data.message || '正在建立登录态…';
+      return;
+    }
+    $('#qrStatus').textContent = data.message || '等待扫码，请使用铁路 12306 App';
+  } catch (error) {
+    state.qr.failures += 1;
+    $('#qrStatus').textContent = error.message || '网络异常，请稍后重试';
+    if (state.qr.failures >= 3) {
+      stopQrPolling();
+      $('#qrSpinner').hidden = false;
+      $('#qrSpinner').textContent = '二维码获取超时，请重新获取';
+    }
+  } finally {
+    state.qr.busy = false;
+  }
+}
+
+async function openAccount({ afterLogin = null } = {}) {
+  if (!state.account.known) await refreshAccount();
+  if (afterLogin) state.afterLogin = afterLogin;
+  $('#pointsModal').hidden = true;
+  $('#accountModal').hidden = false;
+  updateAccountUI();
+  if (state.account.loggedIn) {
+    showAccountView('member');
+    ensureDateRange('#exportStart', '#exportEnd');
+    await loadAccountSummary();
+    return;
+  }
+  showAccountView('guest');
+  if (!state.qr.timer) await createQr();
+}
+
+function closeAccount() {
+  $('#accountModal').hidden = true;
+  stopQrPolling();
+  state.qr.uuid = null;
+  state.afterLogin = null;
+}
+
+async function logoutAccount() {
+  try {
+    await api('/api/logout', { method: 'POST' });
+  } catch {
+    /* ignore */
+  }
+  state.account = { loggedIn: false, user: null, summary: null, known: true };
+  state.pointsRecords = [];
+  state.afterLogin = null;
+  updateAccountUI();
   $('#pointsList').innerHTML = '';
   $('#pointsApply').disabled = true;
-  $('#pointsStatus').textContent = '登录 12306 后读取当前区间的乘车记录；不含发车时间/座位号/票价。';
+  $('#pointsApplyExport').disabled = true;
+  showAccountView('guest');
+  toast('已退出登录');
+  await createQr();
+}
+
+function updateHistoryAccount() {
+  const user = state.account.user || {};
+  $('#historyAccount').textContent = state.account.loggedIn
+    ? `已登录 · ${user.name || '12306 会员'}`
+    : '未登录';
+  $('#pointsLogin').hidden = Boolean(state.account.loggedIn);
+}
+
+async function openHistory() {
+  if (!state.account.known) await refreshAccount();
+  if (!state.account.loggedIn) {
+    await openAccount({ afterLogin: 'history' });
+    return;
+  }
+  $('#accountModal').hidden = true;
+  stopQrPolling();
+  ensureDateRange('#pointsStart', '#pointsEnd');
+  $('#pointsModal').hidden = false;
+  updateHistoryAccount();
+  $('#pointsList').innerHTML = '';
+  $('#pointsApply').disabled = true;
+  $('#pointsApplyExport').disabled = true;
+  $('#pointsCount').textContent = '未读取';
+  await loadPointsRecords();
+}
+
+function updatePointsSelection() {
+  const boxes = [...$('#pointsList').querySelectorAll('input[type="checkbox"]')];
+  const checked = boxes.filter((box) => box.checked).length;
+  $('#pointsCount').textContent = boxes.length
+    ? `已选 ${checked} / 共 ${boxes.length} 条`
+    : '未读取';
+  $('#pointsSelectAll').checked = boxes.length > 0 && checked === boxes.length;
+  $('#pointsApply').disabled = checked === 0;
+  $('#pointsApplyExport').disabled = checked === 0;
 }
 
 async function loadPointsRecords() {
-  const start = $('#pointsStart').value;
-  const end = $('#pointsEnd').value;
+  if (!state.account.loggedIn) {
+    $('#pointsStatus').textContent = '请先扫码登录 12306，再读取历史行程。';
+    $('#pointsLogin').hidden = false;
+    return;
+  }
+  const { start, end } = ensureDateRange('#pointsStart', '#pointsEnd');
   if (!start || !end) {
     toast('请选择开始和结束日期', 'error');
     return;
   }
-  $('#pointsStatus').textContent = '正在读取积分记录，区间较大时需要一点时间…';
-  $('#pointsApply').disabled = true;
+  $('#pointsStatus').textContent = '正在读取历史行程，区间较大时需要一点时间…';
   $('#pointsList').innerHTML = '';
+  $('#pointsApply').disabled = true;
+  $('#pointsApplyExport').disabled = true;
+  $('#pointsCount').textContent = '读取中…';
   try {
-    const response = await fetch(
-      `/api/ticket/records?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=60`,
+    const payload = await api(
+      `/api/ticket/records?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=80`,
+      { timeout: 120000 },
     );
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      if (response.status === 401) throw new Error('登录已失效，请先到积分查询页扫码登录');
-      throw new Error(payload?.error?.message || '读取积分记录失败');
-    }
     state.pointsRecords = Array.isArray(payload.records) ? payload.records : [];
     if (!state.pointsRecords.length) {
       $('#pointsStatus').textContent = payload.warnings?.[0] || '当前区间没有可生成车票的乘车记录。';
+      updatePointsSelection();
       return;
     }
-    $('#pointsStatus').textContent = `找到 ${state.pointsRecords.length} 条乘车记录，勾选后导入。`;
+    $('#pointsStatus').textContent = `找到 ${state.pointsRecords.length} 条历史乘车记录；勾选后导入${state.pointsRecords.length >= 80 ? '（最多显示 80 条，可缩小日期区间）' : ''}。`;
     const list = $('#pointsList');
     state.pointsRecords.forEach((record, index) => {
       const label = document.createElement('label');
@@ -858,25 +1154,40 @@ async function loadPointsRecords() {
       checkbox.type = 'checkbox';
       checkbox.checked = true;
       checkbox.dataset.index = String(index);
+      checkbox.addEventListener('change', updatePointsSelection);
       const main = document.createElement('span');
       main.className = 'point-main';
       const title = document.createElement('strong');
       title.textContent = `${record.date || '日期未知'} ${record.trainNo || ''} ${record.startStation || '?'} → ${record.endStation || '?'}`;
       const detail = document.createElement('small');
-      detail.textContent = [record.passengerName, record.seatClass, record.carriageNo ? `${record.carriageNo}车` : ''].filter(Boolean).join(' · ');
+      detail.textContent = [
+        record.name,
+        record.seatClass,
+        record.carriageNo ? `${record.carriageNo} 车` : '',
+        record.points ? `${record.points} 积分` : '',
+      ].filter(Boolean).join(' · ');
       main.append(title, detail);
       label.append(checkbox, main);
       list.appendChild(label);
     });
-    $('#pointsApply').disabled = false;
+    $('#pointsSelectAll').checked = true;
+    updatePointsSelection();
   } catch (error) {
+    if (error.code === 'NO_LOGIN' || error.status === 401) {
+      state.account.loggedIn = false;
+      updateAccountUI();
+      $('#pointsStatus').textContent = '登录已失效，请重新扫码登录。';
+      $('#pointsLogin').hidden = false;
+      return;
+    }
     console.error(error);
-    $('#pointsStatus').textContent = error.message;
-    toast(error.message, 'error');
+    $('#pointsStatus').textContent = error.message || '读取历史行程失败';
+    $('#pointsCount').textContent = '读取失败';
+    toast(error.message || '读取历史行程失败', 'error');
   }
 }
 
-function applyPointsRecords() {
+function applyPointsRecords({ exportAfter = false } = {}) {
   const selected = [...$('#pointsList').querySelectorAll('input[type="checkbox"]:checked')]
     .map((checkbox) => state.pointsRecords[Number(checkbox.dataset.index)])
     .filter(Boolean);
@@ -885,6 +1196,8 @@ function applyPointsRecords() {
     return;
   }
   persist();
+  const demoOnly = state.trips.length === 1 && state.trips[0].source === 'demo';
+  if (demoOnly) state.trips = [];
   const drafts = selected.map((record) => {
     const draft = defaultDraft();
     draft.style = record.style || 'blue';
@@ -919,13 +1232,80 @@ function applyPointsRecords() {
     return draft;
   });
   state.trips.push(...drafts);
-  state.index = state.trips.length - drafts.length;
+  state.index = demoOnly ? 0 : state.trips.length - drafts.length;
   state.origins = { ...(current().origins || {}) };
   syncFormFromDraft();
   requestRender();
   scheduleSave();
   $('#pointsModal').hidden = true;
-  toast(`已导入 ${drafts.length} 个行程`, 'success');
+  toast(`已导入 ${drafts.length} 个历史行程`, 'success');
+  if (exportAfter) {
+    setTimeout(() => doBatchExport(), 350);
+  }
+}
+
+function showPointsExportProgress(show, text = '', percent = 0) {
+  $('#pointsExportProgress').hidden = !show;
+  if (!show) return;
+  $('#pointsExportText').textContent = text;
+  $('#pointsExportBar').style.width = `${Math.max(0, Math.min(100, percent))}%`;
+}
+
+async function exportPoints(format) {
+  if (state.pointsExportBusy) return;
+  if (!state.account.loggedIn) {
+    await openAccount();
+    return;
+  }
+  const { start, end } = ensureDateRange('#exportStart', '#exportEnd');
+  if (!start || !end || start > end) {
+    toast('请选择有效的积分导出区间', 'error');
+    return;
+  }
+  state.pointsExportBusy = true;
+  $('#exportCsvBtn').disabled = true;
+  $('#exportJsonBtn').disabled = true;
+  showPointsExportProgress(true, '正在创建导出任务…', 2);
+  try {
+    const created = await api('/api/export', {
+      method: 'POST',
+      timeout: 30000,
+      body: { start, end, format, includeDetails: true },
+    });
+    const jobId = created.job?.id;
+    if (!jobId) throw new Error('导出任务创建失败');
+    let job = created.job;
+    while (state.pointsExportBusy) {
+      if (job.state === 'done') break;
+      if (job.state === 'error') throw new Error(job.error || '积分导出失败');
+      showPointsExportProgress(
+        true,
+        job.progress?.message || '正在导出积分…',
+        Number(job.percent) || 2,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const data = await api(`/api/export/${encodeURIComponent(jobId)}`, { timeout: 30000 });
+      job = data.job || job;
+    }
+    if (job.state !== 'done' || !job.downloadUrl) throw new Error(job.error || '积分导出未完成');
+    showPointsExportProgress(true, `导出完成：${job.filename}`, 100);
+    const link = document.createElement('a');
+    link.href = job.downloadUrl;
+    link.download = job.filename || `12306-points.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    toast('积分文件已开始下载', 'success');
+    setTimeout(() => showPointsExportProgress(false), 1600);
+  } catch (error) {
+    console.error(error);
+    showPointsExportProgress(true, error.message || '积分导出失败', 0);
+    toast(error.message || '积分导出失败', 'error');
+  } finally {
+    state.pointsExportBusy = false;
+    $('#exportCsvBtn').disabled = false;
+    $('#exportJsonBtn').disabled = false;
+  }
 }
 
 /* ---------------------------------------------------------------- 事件绑定 */
@@ -1206,9 +1586,24 @@ function bindPdfEvents() {
   });
 }
 
-function bindPointsEvents() {
-  $('#pointsBtn').addEventListener('click', openPoints);
-  $('#pointsImport').addEventListener('click', openPoints);
+function bindAccountEvents() {
+  $('#accountBtn').addEventListener('click', () => openAccount());
+  $('#historyBtn').addEventListener('click', openHistory);
+  $('#pointsImport').addEventListener('click', openHistory);
+  $('#accountClose').addEventListener('click', closeAccount);
+  $('#qrRetry').addEventListener('click', createQr);
+  $('#logoutBtn').addEventListener('click', logoutAccount);
+  $('#importHistoryBtn').addEventListener('click', async () => {
+    closeAccount();
+    await openHistory();
+  });
+  $('#exportCsvBtn').addEventListener('click', () => exportPoints('csv'));
+  $('#exportJsonBtn').addEventListener('click', () => exportPoints('json'));
+
+  $('#pointsLogin').addEventListener('click', () => {
+    $('#pointsModal').hidden = true;
+    openAccount({ afterLogin: 'history' });
+  });
   $('#pointsClose').addEventListener('click', () => {
     $('#pointsModal').hidden = true;
   });
@@ -1216,7 +1611,22 @@ function bindPointsEvents() {
     $('#pointsModal').hidden = true;
   });
   $('#pointsLoad').addEventListener('click', loadPointsRecords);
-  $('#pointsApply').addEventListener('click', applyPointsRecords);
+  $('#pointsSelectAll').addEventListener('change', () => {
+    const checked = $('#pointsSelectAll').checked;
+    $('#pointsList').querySelectorAll('input[type="checkbox"]').forEach((box) => {
+      box.checked = checked;
+    });
+    updatePointsSelection();
+  });
+  $('#pointsApply').addEventListener('click', () => applyPointsRecords());
+  $('#pointsApplyExport').addEventListener('click', () => applyPointsRecords({ exportAfter: true }));
+
+  $('#accountModal').addEventListener('click', (event) => {
+    if (event.target === $('#accountModal')) closeAccount();
+  });
+  $('#pointsModal').addEventListener('click', (event) => {
+    if (event.target === $('#pointsModal')) $('#pointsModal').hidden = true;
+  });
 }
 
 function bindConfirm() {
@@ -1296,7 +1706,7 @@ async function init() {
   bindExportEvents();
   bindPassengerEvents();
   bindPdfEvents();
-  bindPointsEvents();
+  bindAccountEvents();
   bindConfirm();
   bindMobileNav();
   bindProgress();
@@ -1318,6 +1728,8 @@ async function init() {
   }
 
   bindStationAutocomplete();
+  refreshAccount();
+  updateAccountUI();
 }
 
 init().catch((error) => {

@@ -303,7 +303,8 @@ export async function exportBatch(drafts, templateFor, { scale = 2, mode = 'none
     onProgress?.(done, total, draft.name || draft.trainNo || `第 ${done} 张`);
   }
   const zip = createZip(entries);
-  const stamp = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   downloadBlob(zip, `memory-tickets-${stamp}.zip`);
   return entries.length;
 }

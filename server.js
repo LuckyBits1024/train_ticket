@@ -177,7 +177,7 @@ function draftFromDetail(record, index, pinyins) {
     price: /^\d+(?:\.\d{1,2})?$/.test(price) ? price : '',
     identity: '',
     name: passenger,
-    info1: '0',
+    info1: '2',
     info2: '仅供纪念使用',
     info3: '0',
     machineId: '',

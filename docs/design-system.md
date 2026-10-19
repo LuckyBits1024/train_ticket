@@ -205,5 +205,7 @@ box-shadow: var(--td-shadow-md);
 
 - `assets/design/screenshots/ticket-studio-implementation-desktop.webp`
 - `assets/design/screenshots/ticket-studio-implementation-mobile.webp`
+- `assets/design/screenshots/ticket-studio-account.webp`（登录后的「我的 12306」与积分导出）
+- `assets/design/screenshots/ticket-studio-history-mobile.webp`（历史车票导入）
 
 桌面端为双列（预览+导入 / 表单+乘客），手机端为单列（预览 → 表单 → 导入 → 乘客）+ 底部快捷导航；样式与令牌均落在 `public/ticket.css`。

@@ -175,6 +175,7 @@ assets/design/                 # 令牌、图标、截图（已交付）
 - `public/js/vendor/`：pdf.js 3.11 legacy + cmaps + standard fonts、qrcode 1.5.1；
 - `server.js`：`/assets/*` 只读路由、`/api/ticket/stations`、`/api/ticket/records`；
 - `src/data/stations-index.json`：3404 条站名/全拼/首字母/电报码；
+- 工坊顶栏整合「我的 12306」：扫码登录、会员积分、历史车票、积分 CSV/JSON 导出；
 - `tests/ticket/*.test.mjs`：`npm run test:web`，23 个用例；
 - `scripts/test-ticket.py`：16 个用例，覆盖八款尺寸、背面合并、CLI `all/both/pink`。
 

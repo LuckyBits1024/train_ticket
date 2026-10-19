@@ -35,3 +35,4 @@ TraceDot 最值得复用的是**八款真实票面底图 + 基于 809×509 逻�
 - 前端纯函数测试：`npm run test:web`（23 个用例）；Python 测试：`.venv-ticket/bin/python scripts/test-ticket.py`（16 个用例）；
 - Python CLI 的八款 parity（M5）已完成：`--style all`、`--scale`、`--back`、`--back-split`，旧的 `blue/pink/both` 命令保持兼容。
 - 实现截图见 `assets/design/screenshots/ticket-studio-implementation-*.webp`。
+- 工坊内已整合 12306 扫码登录、积分概览、历史行程导入、积分 CSV/JSON 导出；核心流程为「登录 → 历史车票 → 导入并批量导出」。
