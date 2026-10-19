@@ -123,15 +123,15 @@ function drawCircle(ctx, x, y, radius) {
 function scaled(draft, px) {
   return Math.max(1, Math.round(px * (Number(draft.fontScale) || 1)));
 }
-function runWidth(ctx, run, weight) {
+function runWidth(ctx, run, weight, fontScale = 1) {
   if (!run?.text) return 0;
-  setCanvasFont(ctx, run.size || 24, weight, run.family || TICKET_SERIF);
+  setCanvasFont(ctx, (run.size || 24) * fontScale, weight, run.family || TICKET_SERIF);
   return measure(ctx, run.text);
 }
 
 /** 把 runs 的总宽压到 available 内；返回新的 runs 与段间 gap。 */
-function fitRuns(ctx, runs, available, weight, gap) {
-  const total = runs.reduce((sum, run) => sum + (run.gap || 0) + runWidth(ctx, run, weight), 0)
+function fitRuns(ctx, runs, available, weight, gap, fontScale = 1) {
+  const total = runs.reduce((sum, run) => sum + (run.gap || 0) + runWidth(ctx, run, weight, fontScale), 0)
     + Math.max(0, runs.length - 1) * gap;
   if (total <= available || total <= 0) return { runs, gap };
   const factor = available / total;
@@ -307,7 +307,7 @@ export async function renderFront(canvas, draft, template, options = {}) {
       family: /^\d/.test(run.text) ? familyFor('num', draft) : familyFor('zh', draft),
     }));
     let dateGap = 5;
-    const fittedDate = fitRuns(ctx, dateLine, 460, weight, dateGap);
+    const fittedDate = fitRuns(ctx, dateLine, 460, weight, dateGap, Number(draft.fontScale) || 1);
     dateLine = fittedDate.runs;
     dateGap = fittedDate.gap;
     drawRuns(ctx, dateLine, 40 + dx, 190 + dy2, dateGap);
@@ -332,7 +332,7 @@ export async function renderFront(canvas, draft, template, options = {}) {
     carriageRuns.push({ text: draft.seatPosition, size: 24, family: familyFor('zh', draft) });
   }
   if (carriageRuns.length) {
-    const fitted = fitRuns(ctx, carriageRuns, 268, weight, 3);
+    const fitted = fitRuns(ctx, carriageRuns, 268, weight, 3, Number(draft.fontScale) || 1);
     drawRuns(ctx, fitted.runs, 522 + dx, 190 + dy2, fitted.gap);
   }
 

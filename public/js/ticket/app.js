@@ -887,6 +887,7 @@ function applyPointsRecords() {
   persist();
   const drafts = selected.map((record) => {
     const draft = defaultDraft();
+    draft.style = record.style || 'blue';
     const origins = createOrigins();
     const parsed = {
       startStation: record.startStation,
